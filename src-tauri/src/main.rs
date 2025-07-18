@@ -3,6 +3,11 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 use tauri::Manager;
 use log::{info, error, warn};
+use secrecy::{Secret, ExposeSecret};
+use zeroize::Zeroize;
+
+mod updater;
+mod logger;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct VibeSafeResult {
@@ -35,7 +40,7 @@ fn find_vibesafe_command() -> String {
     
     for path in possible_paths {
         if Path::new(path).exists() || path == "vibesafe" {
-            info!("Found vibesafe at: {}", path);
+            info!("Found vibesafe at configured location");
             return path.to_string();
         }
     }
@@ -165,8 +170,14 @@ async fn get_vibesafe_status() -> VibeSafeResult {
 // Add secret
 #[tauri::command]
 async fn add_secret(name: String, value: String) -> VibeSafeResult {
+    use std::io::Write;
+    use std::process::Stdio;
+    
+    // Convert value to secure string immediately
+    let secret_value = Secret::new(value);
+    
     // Validate input
-    if name.is_empty() || value.is_empty() {
+    if name.is_empty() || secret_value.expose_secret().is_empty() {
         return VibeSafeResult {
             success: false,
             data: None,
@@ -182,11 +193,43 @@ async fn add_secret(name: String, value: String) -> VibeSafeResult {
         };
     }
     
-    match Command::new(&find_vibesafe_command())
+    // Use stdin to pass the secret value securely
+    let mut child = match Command::new(&find_vibesafe_command())
         .arg("add")
         .arg(&name)
-        .arg(&value)
-        .output() {
+        .arg("--stdin")  // Tell vibesafe to read from stdin
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn() {
+        Ok(child) => child,
+        Err(e) => {
+            return VibeSafeResult {
+                success: false,
+                data: None,
+                error: Some(format!("Failed to start vibesafe: {}", e)),
+            }
+        }
+    };
+    
+    // Write the secret value to stdin
+    if let Some(mut stdin) = child.stdin.take() {
+        if let Err(e) = stdin.write_all(secret_value.expose_secret().as_bytes()) {
+            error!("Failed to write to stdin: {}", e);
+            return VibeSafeResult {
+                success: false,
+                data: None,
+                error: Some("Failed to pass secret securely".to_string()),
+            };
+        }
+        // Close stdin to signal EOF
+        drop(stdin);
+    }
+    
+    // The secret value will be automatically zeroed when it goes out of scope
+    
+    // Wait for the command to complete
+    match child.wait_with_output() {
         Ok(output) => {
             if output.status.success() {
                 VibeSafeResult {
@@ -232,10 +275,16 @@ async fn get_secret(name: String) -> VibeSafeResult {
     {
         Ok(output) => {
             if output.status.success() {
-                let secret_value = String::from_utf8_lossy(&output.stdout);
+                // Convert to secure string immediately
+                let mut secret_bytes = output.stdout;
+                let secret_str = String::from_utf8_lossy(&secret_bytes).trim().to_string();
+                
+                // Zero out the original bytes
+                secret_bytes.zeroize();
+                
                 VibeSafeResult {
                     success: true,
-                    data: Some(serde_json::json!(secret_value.trim())),
+                    data: Some(serde_json::json!(secret_str)),
                     error: None,
                 }
             } else {
@@ -362,8 +411,8 @@ async fn enable_touchid() -> VibeSafeResult {
 }
 
 fn main() {
-    // Initialize logger
-    env_logger::init();
+    // Initialize sanitizing logger
+    logger::init_sanitizing_logger();
     
     info!("Starting VibeSafe application");
     
@@ -384,7 +433,13 @@ fn main() {
             add_secret,
             get_secret,
             delete_secret,
-            enable_touchid
+            enable_touchid,
+            updater::get_app_version,
+            updater::check_for_updates,
+            updater::download_update,
+            updater::install_update,
+            updater::get_update_settings,
+            updater::save_update_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

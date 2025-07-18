@@ -14,6 +14,10 @@ class VibeSafeApp {
         
         this.elements = {}
         this.eventListeners = new Map()
+        this.updateManager = null
+        this.currentVersion = '1.0.0'
+        this.clipboardTimer = null
+        this.clipboardTimeout = 30000 // 30 seconds default
         
         this.init()
     }
@@ -24,6 +28,7 @@ class VibeSafeApp {
         this.cacheElements()
         this.bindEvents()
         this.loadInitialData()
+        this.initializeUpdateManager()
     }
     
     cacheElements() {
@@ -89,10 +94,25 @@ class VibeSafeApp {
     async loadInitialData() {
         try {
             await this.refreshStatus()
+            // Get app version
+            this.currentVersion = await invoke('get_app_version')
+            
+            // Load saved clipboard timeout
+            const savedTimeout = localStorage.getItem('vibesafe_clipboard_timeout')
+            if (savedTimeout) {
+                this.clipboardTimeout = parseInt(savedTimeout, 10)
+            }
         } catch (error) {
             console.error('Error loading initial data:', error)
             // Don't show error toast on initial load - it might just be uninitialized
             // The user can click "Show Status" to see the actual status
+        }
+    }
+    
+    async initializeUpdateManager() {
+        if (window.UpdateManager) {
+            this.updateManager = new window.UpdateManager(this)
+            await this.updateManager.init()
         }
     }
     
@@ -203,6 +223,14 @@ class VibeSafeApp {
         // Update state
         this.state.currentTab = tabName
         
+        // Load update settings UI when switching to settings tab
+        if (tabName === 'settings') {
+            if (this.updateManager) {
+                this.renderUpdateSettings()
+            }
+            this.attachClipboardSettingsListeners()
+        }
+        
         // Load tab-specific data
         if (tabName === 'secrets') {
             this.refreshSecrets()
@@ -288,13 +316,38 @@ class VibeSafeApp {
             
             if (result.success) {
                 await navigator.clipboard.writeText(result.data)
-                this.showToast(`Secret "${name}" copied to clipboard!`, 'success')
+                this.showToast(`Secret "${name}" copied to clipboard! Will clear in ${this.clipboardTimeout / 1000} seconds.`, 'success')
+                this.startClipboardTimer()
             } else {
                 this.showToast(`Failed to get secret: ${result.error}`, 'error')
             }
         } catch (error) {
             this.showToast(`Error getting secret: ${error.message}`, 'error')
         }
+    }
+    
+    startClipboardTimer() {
+        // Don't start timer if timeout is 0 (disabled)
+        if (this.clipboardTimeout === 0) {
+            return
+        }
+        
+        // Clear any existing timer
+        if (this.clipboardTimer) {
+            clearTimeout(this.clipboardTimer)
+        }
+        
+        // Start new timer
+        this.clipboardTimer = setTimeout(async () => {
+            try {
+                // Clear clipboard by writing empty string
+                await navigator.clipboard.writeText('')
+                this.showToast('Clipboard cleared for security', 'info')
+            } catch (error) {
+                console.error('Failed to clear clipboard:', error)
+            }
+            this.clipboardTimer = null
+        }, this.clipboardTimeout)
     }
     
     async deleteSecret(name) {
@@ -590,6 +643,38 @@ class VibeSafeApp {
             }
         } catch (error) {
             this.showToast(`❌ Claude integration test failed! Error: ${error.message}`, 'error')
+        }
+    }
+    
+    // === UPDATE MANAGEMENT ===
+    
+    renderUpdateSettings() {
+        const container = document.getElementById('update-settings-container')
+        if (!container || !this.updateManager) return
+        
+        container.innerHTML = this.updateManager.renderSettingsUI()
+        this.updateManager.attachSettingsListeners(container)
+    }
+    
+    attachClipboardSettingsListeners() {
+        const clipboardSelect = document.getElementById('clipboard-timeout')
+        if (clipboardSelect) {
+            // Set current value
+            clipboardSelect.value = this.clipboardTimeout.toString()
+            
+            // Add change listener
+            clipboardSelect.addEventListener('change', (e) => {
+                this.clipboardTimeout = parseInt(e.target.value, 10)
+                
+                // Save to localStorage
+                localStorage.setItem('vibesafe_clipboard_timeout', this.clipboardTimeout.toString())
+                
+                if (this.clipboardTimeout === 0) {
+                    this.showToast('Clipboard auto-clear disabled', 'info')
+                } else {
+                    this.showToast(`Clipboard will auto-clear after ${this.clipboardTimeout / 1000} seconds`, 'success')
+                }
+            })
         }
     }
     

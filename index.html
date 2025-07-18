@@ -733,6 +733,226 @@
                 width: 100%;
             }
         }
+        
+        /* Update Notifications */
+        .update-notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-white);
+            border-radius: 12px;
+            box-shadow: var(--shadow-large);
+            padding: 20px;
+            max-width: 400px;
+            z-index: 9999;
+            animation: slideInUp 0.3s ease-out;
+        }
+        
+        @keyframes slideInUp {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .update-notification__content h3 {
+            margin: 0 0 10px 0;
+            color: var(--text-primary);
+        }
+        
+        .update-notification__content p {
+            margin: 0 0 15px 0;
+            color: var(--text-secondary);
+        }
+        
+        .update-notification__actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .update-dialog {
+            max-width: 600px;
+        }
+        
+        .update-info {
+            margin-bottom: 20px;
+        }
+        
+        .update-info h3 {
+            margin: 0 0 5px 0;
+            color: var(--text-primary);
+        }
+        
+        .update-date,
+        .update-size {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        
+        .update-notes {
+            margin: 20px 0;
+        }
+        
+        .update-notes h4 {
+            margin: 0 0 10px 0;
+            color: var(--text-primary);
+        }
+        
+        .update-notes__content {
+            background: var(--bg-subtle);
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+        
+        .update-notes__content h5 {
+            margin: 10px 0 5px 0;
+            font-size: 16px;
+            color: var(--text-primary);
+        }
+        
+        .update-notes__content ul {
+            margin: 5px 0;
+            padding-left: 20px;
+        }
+        
+        .update-notes__content li {
+            margin: 3px 0;
+            color: var(--text-secondary);
+        }
+        
+        .update-progress {
+            margin: 20px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-subtle);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-bar__fill {
+            height: 100%;
+            background: var(--primary-blue);
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        
+        /* Settings UI for Updates */
+        .settings-section {
+            margin: 30px 0;
+        }
+        
+        .settings-section h3 {
+            margin: 0 0 20px 0;
+            color: var(--text-primary);
+        }
+        
+        .setting-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+        
+        .setting-info {
+            flex: 1;
+        }
+        
+        .setting-info h4 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+            color: var(--text-primary);
+        }
+        
+        .setting-info p {
+            margin: 0;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        
+        .form-select {
+            padding: 8px 12px;
+            border: 1px solid var(--border-medium);
+            border-radius: 8px;
+            font-size: 14px;
+            background: var(--bg-white);
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+        
+        .setting-actions {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+        }
+        
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 30px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--border-medium);
+            transition: 0.3s;
+            border-radius: 30px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: var(--success-green);
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
     </style>
 </head>
 <body>
@@ -850,6 +1070,28 @@
                             Check Status
                         </button>
                     </div>
+                    
+                    <!-- Clipboard Settings -->
+                    <div class="settings-section">
+                        <h3>Clipboard Settings</h3>
+                        
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <h4>Auto-Clear Timeout</h4>
+                                <p>Automatically clear clipboard after copying secrets</p>
+                                <select id="clipboard-timeout" class="form-select">
+                                    <option value="15000">15 seconds</option>
+                                    <option value="30000" selected>30 seconds</option>
+                                    <option value="60000">1 minute</option>
+                                    <option value="120000">2 minutes</option>
+                                    <option value="0">Never</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Update Settings Section -->
+                    <div id="update-settings-container"></div>
                 </div>
                 
                 <!-- Claude Tab -->
@@ -930,6 +1172,7 @@
         <div class="toast-container" id="toast-container"></div>
     </div>
     
+    <script src="/src/updater.js"></script>
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>
