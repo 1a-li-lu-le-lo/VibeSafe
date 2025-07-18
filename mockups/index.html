@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VibeSafe App Mockups</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            background: #f5f5f7;
+        }
+        
+        .mockup-container {
+            max-width: 900px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+        
+        .window-chrome {
+            background: #e8e8e8;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            border-bottom: 1px solid #d1d1d1;
+        }
+        
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .window-control {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .close { background: #ff5f57; }
+        .minimize { background: #ffbd2e; }
+        .maximize { background: #28ca42; }
+        
+        .window-title {
+            flex: 1;
+            text-align: center;
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .app-frame {
+            width: 900px;
+            height: 700px;
+            border: none;
+        }
+        
+        .mockup-list {
+            max-width: 900px;
+            margin: 40px auto;
+        }
+        
+        .mockup-item {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+        
+        .mockup-item h3 {
+            margin-top: 0;
+            color: #1d1d1f;
+        }
+        
+        .mockup-item button {
+            background: #007aff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .mockup-item button:hover {
+            background: #0056b3;
+        }
+        
+        .screenshot-info {
+            background: #e8f4fd;
+            border: 1px solid #b8e0ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 40px;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="screenshot-info">
+        <h2>📸 VibeSafe App Mockups for Screenshots</h2>
+        <p>These mockups show all the app screens. Each mockup opens in a window that looks like the real app.</p>
+        <p><strong>To take screenshots:</strong> Click each "View Mockup" button and use Cmd+Shift+4 to capture.</p>
+    </div>
+    
+    <div class="mockup-list">
+        <div class="mockup-item">
+            <h3>1. Home Tab - Default View</h3>
+            <p>Shows the main home screen with feature cards and action buttons.</p>
+            <button onclick="showMockup('home-default.html')">View Mockup</button>
+        </div>
+        
+        <div class="mockup-item">
+            <h3>2. Home Tab - With Status Section</h3>
+            <p>Shows the home screen after clicking "Show Status" with system information visible.</p>
+            <button onclick="showMockup('home-status.html')">View Mockup</button>
+        </div>
+        
+        <div class="mockup-item">
+            <h3>3. Secrets Tab</h3>
+            <p>Displays the secrets management interface with list of stored secrets.</p>
+            <button onclick="showMockup('secrets-tab.html')">View Mockup</button>
+        </div>
+        
+        <div class="mockup-item">
+            <h3>4. Add Secret Modal</h3>
+            <p>Shows the modal dialog for adding a new secret with Touch ID notice.</p>
+            <button onclick="showMockup('add-secret-modal.html')">View Mockup</button>
+        </div>
+        
+        <div class="mockup-item">
+            <h3>5. Form Validation</h3>
+            <p>Demonstrates form validation errors when submitting empty fields.</p>
+            <button onclick="showMockup('form-validation.html')">View Mockup</button>
+        </div>
+        
+        <div class="mockup-item">
+            <h3>6. Settings Tab</h3>
+            <p>Shows Touch ID settings and status check options.</p>
+            <button onclick="showMockup('settings-tab.html')">View Mockup</button>
+        </div>
+        
+        <div class="mockup-item">
+            <h3>7. Claude Tab</h3>
+            <p>Displays Claude Code integration options and setup instructions.</p>
+            <button onclick="showMockup('claude-tab.html')">View Mockup</button>
+        </div>
+        
+        <div class="mockup-item">
+            <h3>8. Toast Notifications</h3>
+            <p>Shows various toast notification styles (success, error, info).</p>
+            <button onclick="showMockup('toast-notifications.html')">View Mockup</button>
+        </div>
+    </div>
+    
+    <script>
+        function showMockup(filename) {
+            window.open(`/Users/holocep/vibesafe-app/mockups/${filename}`, '_blank', 'width=940,height=780');
+        }
+    </script>
+</body>
+</html>

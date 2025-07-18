@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VibeSafe App Screenshots</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #e5e5e7;
+            margin: 0;
+            padding: 40px 20px;
+        }
+        
+        .screen-container {
+            max-width: 900px;
+            margin: 0 auto 60px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+        
+        .window-chrome {
+            background: linear-gradient(to bottom, #e8e8e8, #d6d6d6);
+            height: 38px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            border-bottom: 1px solid #b8b8b8;
+        }
+        
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .window-control {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .close { background: #ff5f57; }
+        .minimize { background: #ffbd2e; }
+        .maximize { background: #28ca42; }
+        
+        .window-title {
+            flex: 1;
+            text-align: center;
+            font-size: 13px;
+            color: #4a4a4a;
+            font-weight: 500;
+        }
+        
+        .app-content {
+            height: 700px;
+            background: #f5f5f7;
+            position: relative;
+        }
+        
+        /* VibeSafe App Styles */
+        .vibesafe-app {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .titlebar {
+            background: white;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid #e1e1e6;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+        
+        .main {
+            flex: 1;
+            padding: 24px;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            border: 1px solid #e1e1e6;
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        .logo {
+            font-size: 48px;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            text-align: center;
+            margin: 0 0 8px;
+            color: #1d1d1f;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            color: #86868b;
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            background: #f5f5f7;
+            border-radius: 8px;
+            padding: 4px;
+            margin-bottom: 24px;
+        }
+        
+        .nav-tab {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #86868b;
+            cursor: pointer;
+        }
+        
+        .nav-tab.active {
+            background: white;
+            color: #1d1d1f;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        
+        .feature-card {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e1e1e6;
+            margin-bottom: 16px;
+        }
+        
+        .feature-icon {
+            font-size: 24px;
+            margin-right: 16px;
+            width: 48px;
+            text-align: center;
+        }
+        
+        .feature-content h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0 0 4px;
+            color: #1d1d1f;
+        }
+        
+        .feature-content p {
+            font-size: 14px;
+            color: #86868b;
+            margin: 0;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 32px;
+        }
+        
+        .btn {
+            padding: 12px 32px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .btn-primary {
+            background: #007aff;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #f5f5f7;
+            color: #1d1d1f;
+            border: 1px solid #e1e1e6;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        .btn-danger {
+            background: #ff3b30;
+            color: white;
+        }
+        
+        .status-section {
+            margin-top: 24px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e1e1e6;
+        }
+        
+        .status-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1d1d1f;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e1e1e6;
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status-label {
+            font-size: 14px;
+            color: #86868b;
+        }
+        
+        .status-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: #1d1d1f;
+        }
+        
+        .secrets-list {
+            margin-top: 16px;
+        }
+        
+        .secret-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e1e1e6;
+            margin-bottom: 8px;
+        }
+        
+        .secret-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #1d1d1f;
+        }
+        
+        .secret-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        /* Modal styles */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .modal h2 {
+            font-size: 20px;
+            font-weight: 600;
+            text-align: center;
+            margin: 0 0 24px;
+            color: #1d1d1f;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1d1d1f;
+            margin-bottom: 4px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #e1e1e6;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        .form-input.error {
+            border-color: #ff3b30;
+        }
+        
+        .form-validation {
+            font-size: 12px;
+            color: #ff3b30;
+            margin-top: 4px;
+        }
+        
+        .touch-id-prompt {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            background: rgba(0,122,255,0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(0,122,255,0.3);
+            margin: 16px 0;
+        }
+        
+        .touch-id-icon {
+            font-size: 20px;
+        }
+        
+        .touch-id-text {
+            font-size: 14px;
+            color: #007aff;
+            font-weight: 500;
+        }
+        
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+        
+        /* Toast styles */
+        .toast-container {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .toast {
+            background: white;
+            border-radius: 8px;
+            padding: 12px 16px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            border: 1px solid #e1e1e6;
+            max-width: 350px;
+            font-size: 14px;
+        }
+        
+        .toast.success {
+            border-left: 4px solid #34c759;
+        }
+        
+        .toast.error {
+            border-left: 4px solid #ff3b30;
+        }
+        
+        .toast.info {
+            border-left: 4px solid #007aff;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 64px 24px;
+            color: #86868b;
+        }
+        
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .empty-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1d1d1f;
+            margin-bottom: 8px;
+        }
+        
+        .empty-description {
+            font-size: 14px;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+        
+        .screen-label {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <!-- Screen 1: Home Tab Default -->
+    <div class="screen-label">1. Home Tab - Default View</div>
+    <div class="screen-container">
+        <div class="window-chrome">
+            <div class="window-controls">
+                <div class="window-control close"></div>
+                <div class="window-control minimize"></div>
+                <div class="window-control maximize"></div>
+            </div>
+            <div class="window-title">VibeSafe</div>
+        </div>
+        <div class="app-content">
+            <div class="vibesafe-app">
+                <div class="titlebar">VibeSafe</div>
+                <main class="main">
+                    <div class="container">
+                        <div class="logo">🔐</div>
+                        <h1>VibeSafe</h1>
+                        <p class="subtitle">Secure Secrets Manager with Touch ID Protection</p>
+                        
+                        <nav class="nav-tabs">
+                            <button class="nav-tab active">Home</button>
+                            <button class="nav-tab">Secrets</button>
+                            <button class="nav-tab">Settings</button>
+                            <button class="nav-tab">Claude</button>
+                        </nav>
+                        
+                        <div class="feature-card">
+                            <div class="feature-icon">🛡️</div>
+                            <div class="feature-content">
+                                <h3>Military-Grade Encryption</h3>
+                                <p>RSA-2048 + AES-256-GCM hybrid encryption</p>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-icon">👆</div>
+                            <div class="feature-content">
+                                <h3>Touch ID Protection</h3>
+                                <p>Hardware-backed biometric authentication</p>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-icon">🚫</div>
+                            <div class="feature-content">
+                                <h3>Zero Exposure</h3>
+                                <p>Secrets never exposed in plaintext</p>
+                            </div>
+                        </div>
+                        
+                        <div class="actions">
+                            <button class="btn btn-primary">Initialize VibeSafe</button>
+                            <button class="btn btn-secondary">Show Status</button>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Screen 2: Home Tab with Status -->
+    <div class="screen-label">2. Home Tab - Status Visible</div>
+    <div class="screen-container">
+        <div class="window-chrome">
+            <div class="window-controls">
+                <div class="window-control close"></div>
+                <div class="window-control minimize"></div>
+                <div class="window-control maximize"></div>
+            </div>
+            <div class="window-title">VibeSafe</div>
+        </div>
+        <div class="app-content">
+            <div class="vibesafe-app">
+                <div class="titlebar">VibeSafe</div>
+                <main class="main">
+                    <div class="container">
+                        <div class="logo">🔐</div>
+                        <h1>VibeSafe</h1>
+                        <p class="subtitle">Secure Secrets Manager with Touch ID Protection</p>
+                        
+                        <nav class="nav-tabs">
+                            <button class="nav-tab active">Home</button>
+                            <button class="nav-tab">Secrets</button>
+                            <button class="nav-tab">Settings</button>
+                            <button class="nav-tab">Claude</button>
+                        </nav>
+                        
+                        <div class="feature-card">
+                            <div class="feature-icon">🛡️</div>
+                            <div class="feature-content">
+                                <h3>Military-Grade Encryption</h3>
+                                <p>RSA-2048 + AES-256-GCM hybrid encryption</p>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-icon">👆</div>
+                            <div class="feature-content">
+                                <h3>Touch ID Protection</h3>
+                                <p>Hardware-backed biometric authentication</p>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-icon">🚫</div>
+                            <div class="feature-content">
+                                <h3>Zero Exposure</h3>
+                                <p>Secrets never exposed in plaintext</p>
+                            </div>
+                        </div>
+                        
+                        <div class="actions">
+                            <button class="btn btn-primary">Initialize VibeSafe</button>
+                            <button class="btn btn-secondary">Show Status</button>
+                        </div>
+                        
+                        <div class="status-section">
+                            <div class="status-title">System Status</div>
+                            <div class="status-item">
+                                <span class="status-label">Encryption Keys:</span>
+                                <span class="status-value">Initialized</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Touch ID Protection:</span>
+                                <span class="status-value">Enabled</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Secrets Stored:</span>
+                                <span class="status-value">21</span>
+                            </div>
+                            <div class="secrets-list">
+                                <div class="secret-item">
+                                    <span class="secret-name">OPENAI_API_KEY</span>
+                                    <div class="secret-actions">
+                                        <button class="btn btn-primary btn-small">Copy</button>
+                                        <button class="btn btn-danger btn-small">Delete</button>
+                                    </div>
+                                </div>
+                                <div class="secret-item">
+                                    <span class="secret-name">ANTHROPIC_API_KEY</span>
+                                    <div class="secret-actions">
+                                        <button class="btn btn-primary btn-small">Copy</button>
+                                        <button class="btn btn-danger btn-small">Delete</button>
+                                    </div>
+                                </div>
+                                <div class="secret-item">
+                                    <span class="secret-name">GITHUB_TOKEN</span>
+                                    <div class="secret-actions">
+                                        <button class="btn btn-primary btn-small">Copy</button>
+                                        <button class="btn btn-danger btn-small">Delete</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Screen 3: Secrets Tab -->
+    <div class="screen-label">3. Secrets Tab</div>
+    <div class="screen-container">
+        <div class="window-chrome">
+            <div class="window-controls">
+                <div class="window-control close"></div>
+                <div class="window-control minimize"></div>
+                <div class="window-control maximize"></div>
+            </div>
+            <div class="window-title">VibeSafe</div>
+        </div>
+        <div class="app-content">
+            <div class="vibesafe-app">
+                <div class="titlebar">VibeSafe</div>
+                <main class="main">
+                    <div class="container">
+                        <div class="logo">🔐</div>
+                        <h1>VibeSafe</h1>
+                        <p class="subtitle">Secure Secrets Manager with Touch ID Protection</p>
+                        
+                        <nav class="nav-tabs">
+                            <button class="nav-tab">Home</button>
+                            <button class="nav-tab active">Secrets</button>
+                            <button class="nav-tab">Settings</button>
+                            <button class="nav-tab">Claude</button>
+                        </nav>
+                        
+                        <div class="actions">
+                            <button class="btn btn-primary">Add Secret</button>
+                            <button class="btn btn-secondary">Refresh</button>
+                        </div>
+                        
+                        <div class="secrets-list" style="margin-top: 24px;">
+                            <div class="secret-item">
+                                <span class="secret-name">OPENAI_API_KEY</span>
+                                <div class="secret-actions">
+                                    <button class="btn btn-primary btn-small">Copy</button>
+                                    <button class="btn btn-danger btn-small">Delete</button>
+                                </div>
+                            </div>
+                            <div class="secret-item">
+                                <span class="secret-name">ANTHROPIC_API_KEY</span>
+                                <div class="secret-actions">
+                                    <button class="btn btn-primary btn-small">Copy</button>
+                                    <button class="btn btn-danger btn-small">Delete</button>
+                                </div>
+                            </div>
+                            <div class="secret-item">
+                                <span class="secret-name">GITHUB_TOKEN</span>
+                                <div class="secret-actions">
+                                    <button class="btn btn-primary btn-small">Copy</button>
+                                    <button class="btn btn-danger btn-small">Delete</button>
+                                </div>
+                            </div>
+                            <div class="secret-item">
+                                <span class="secret-name">AWS_ACCESS_KEY_ID</span>
+                                <div class="secret-actions">
+                                    <button class="btn btn-primary btn-small">Copy</button>
+                                    <button class="btn btn-danger btn-small">Delete</button>
+                                </div>
+                            </div>
+                            <div class="secret-item">
+                                <span class="secret-name">STRIPE_API_KEY</span>
+                                <div class="secret-actions">
+                                    <button class="btn btn-primary btn-small">Copy</button>
+                                    <button class="btn btn-danger btn-small">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Screen 4: Add Secret Modal -->
+    <div class="screen-label">4. Add Secret Modal</div>
+    <div class="screen-container">
+        <div class="window-chrome">
+            <div class="window-controls">
+                <div class="window-control close"></div>
+                <div class="window-control minimize"></div>
+                <div class="window-control maximize"></div>
+            </div>
+            <div class="window-title">VibeSafe</div>
+        </div>
+        <div class="app-content">
+            <div class="vibesafe-app">
+                <div class="titlebar">VibeSafe</div>
+                <main class="main">
+                    <div class="container">
+                        <div class="logo">🔐</div>
+                        <h1>VibeSafe</h1>
+                        <p class="subtitle">Secure Secrets Manager with Touch ID Protection</p>
+                        
+                        <nav class="nav-tabs">
+                            <button class="nav-tab">Home</button>
+                            <button class="nav-tab active">Secrets</button>
+                            <button class="nav-tab">Settings</button>
+                            <button class="nav-tab">Claude</button>
+                        </nav>
+                        
+                        <div class="actions">
+                            <button class="btn btn-primary">Add Secret</button>
+                            <button class="btn btn-secondary">Refresh</button>
+                        </div>
+                    </div>
+                </main>
+                
+                <div class="modal-overlay">
+                    <div class="modal">
+                        <h2>Add New Secret</h2>
+                        <form>
+                            <div class="form-group">
+                                <label class="form-label">Secret Name</label>
+                                <input type="text" class="form-input" placeholder="e.g., OPENAI_API_KEY">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Secret Value</label>
+                                <input type="password" class="form-input" placeholder="Paste your API key or secret here">
+                            </div>
+                            <div class="touch-id-prompt">
+                                <div class="touch-id-icon">👆</div>
+                                <div class="touch-id-text">Touch ID authentication will be required to securely store this secret</div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Add Secret</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Screen 5: Form Validation -->
+    <div class="screen-label">5. Form Validation Example</div>
+    <div class="screen-container">
+        <div class="window-chrome">
+            <div class="window-controls">
+                <div class="window-control close"></div>
+                <div class="window-control minimize"></div>
+                <div class="window-control maximize"></div>
+            </div>
+            <div class="window-title">VibeSafe</div>
+        </div>
+        <div class="app-content">
+            <div class="vibesafe-app">
+                <div class="titlebar">VibeSafe</div>
+                <main class="main">
+                    <div class="container">
+                        <div class="logo">🔐</div>
+                        <h1>VibeSafe</h1>
+                        <p class="subtitle">Secure Secrets Manager with Touch ID Protection</p>
+                        
+                        <nav class="nav-tabs">
+                            <button class="nav-tab">Home</button>
+                            <button class="nav-tab active">Secrets</button>
+                            <button class="nav-tab">Settings</button>
+                            <button class="nav-tab">Claude</button>
+                        </nav>
+                    </div>
+                </main>
+                
+                <div class="modal-overlay">
+                    <div class="modal">
+                        <h2>Add New Secret</h2>
+                        <form>
+                            <div class="form-group">
+                                <label class="form-label">Secret Name</label>
+                                <input type="text" class="form-input error" placeholder="e.g., OPENAI_API_KEY">
+                                <div class="form-validation">Secret name is required</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Secret Value</label>
+                                <input type="password" class="form-input error" placeholder="Paste your API key or secret here">
+                                <div class="form-validation">Secret value is required</div>
+                            </div>
+                            <div class="touch-id-prompt">
+                                <div class="touch-id-icon">👆</div>
+                                <div class="touch-id-text">Touch ID authentication will be required to securely store this secret</div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Add Secret</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Screen 6: Settings Tab -->
+    <div class="screen-label">6. Settings Tab</div>
+    <div class="screen-container">
+        <div class="window-chrome">
+            <div class="window-controls">
+                <div class="window-control close"></div>
+                <div class="window-control minimize"></div>
+                <div class="window-control maximize"></div>
+            </div>
+            <div class="window-title">VibeSafe</div>
+        </div>
+        <div class="app-content">
+            <div class="vibesafe-app">
+                <div class="titlebar">VibeSafe</div>
+                <main class="main">
+                    <div class="container">
+                        <div class="logo">🔐</div>
+                        <h1>VibeSafe</h1>
+                        <p class="subtitle">Secure Secrets Manager with Touch ID Protection</p>
+                        
+                        <nav class="nav-tabs">
+                            <button class="nav-tab">Home</button>
+                            <button class="nav-tab">Secrets</button>
+                            <button class="nav-tab active">Settings</button>
+                            <button class="nav-tab">Claude</button>
+                        </nav>
+                        
+                        <div class="feature-card">
+                            <div class="feature-icon">👆</div>
+                            <div class="feature-content">
+                                <h3>Touch ID Protection</h3>
+                                <p>Enable hardware-backed biometric authentication</p>
+                            </div>
+                        </div>
+                        
+                        <div class="actions">
+                            <button class="btn btn-primary">Enable Touch ID</button>
+                            <button class="btn btn-secondary">Check Status</button>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Screen 7: Claude Tab -->
+    <div class="screen-label">7. Claude Integration Tab</div>
+    <div class="screen-container">
+        <div class="window-chrome">
+            <div class="window-controls">
+                <div class="window-control close"></div>
+                <div class="window-control minimize"></div>
+                <div class="window-control maximize"></div>
+            </div>
+            <div class="window-title">VibeSafe</div>
+        </div>
+        <div class="app-content">
+            <div class="vibesafe-app">
+                <div class="titlebar">VibeSafe</div>
+                <main class="main">
+                    <div class="container">
+                        <div class="logo">🔐</div>
+                        <h1>VibeSafe</h1>
+                        <p class="subtitle">Secure Secrets Manager with Touch ID Protection</p>
+                        
+                        <nav class="nav-tabs">
+                            <button class="nav-tab">Home</button>
+                            <button class="nav-tab">Secrets</button>
+                            <button class="nav-tab">Settings</button>
+                            <button class="nav-tab active">Claude</button>
+                        </nav>
+                        
+                        <div class="feature-card">
+                            <div class="feature-icon">🤖</div>
+                            <div class="feature-content">
+                                <h3>Claude Code Integration</h3>
+                                <p>Seamlessly integrate with Claude Code for secure secret management</p>
+                            </div>
+                        </div>
+                        
+                        <div class="actions">
+                            <button class="btn btn-primary">Setup Claude Integration</button>
+                            <button class="btn btn-secondary">Test Integration</button>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Screen 8: Toast Notifications -->
+    <div class="screen-label">8. Toast Notifications</div>
+    <div class="screen-container">
+        <div class="window-chrome">
+            <div class="window-controls">
+                <div class="window-control close"></div>
+                <div class="window-control minimize"></div>
+                <div class="window-control maximize"></div>
+            </div>
+            <div class="window-title">VibeSafe</div>
+        </div>
+        <div class="app-content">
+            <div class="vibesafe-app">
+                <div class="titlebar">VibeSafe</div>
+                <main class="main">
+                    <div class="container">
+                        <div class="logo">🔐</div>
+                        <h1>VibeSafe</h1>
+                        <p class="subtitle">Secure Secrets Manager with Touch ID Protection</p>
+                        
+                        <nav class="nav-tabs">
+                            <button class="nav-tab active">Home</button>
+                            <button class="nav-tab">Secrets</button>
+                            <button class="nav-tab">Settings</button>
+                            <button class="nav-tab">Claude</button>
+                        </nav>
+                        
+                        <div class="feature-card">
+                            <div class="feature-icon">🛡️</div>
+                            <div class="feature-content">
+                                <h3>Military-Grade Encryption</h3>
+                                <p>RSA-2048 + AES-256-GCM hybrid encryption</p>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+                
+                <div class="toast-container">
+                    <div class="toast success">
+                        ✅ Secret added successfully!
+                    </div>
+                    <div class="toast info">
+                        👆 Touch ID authentication required...
+                    </div>
+                    <div class="toast error">
+                        ❌ Failed to delete secret: Permission denied
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

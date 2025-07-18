@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VibeSafe - Home</title>
+    <link rel="stylesheet" href="../index.html">
+    <style>
+        /* Copy all styles from index.html */
+        :root {
+            --primary-blue: #007aff;
+            --primary-blue-hover: #0056b3;
+            --secondary-gray: #f5f5f7;
+            --success-green: #34c759;
+            --error-red: #ff3b30;
+            --text-primary: #1d1d1f;
+            --text-secondary: #86868b;
+            --background-primary: #ffffff;
+            --background-secondary: #f5f5f7;
+            --border-light: #e1e1e6;
+            --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.08);
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --font-size-sm: 14px;
+            --font-size-base: 16px;
+            --font-size-3xl: 28px;
+            --font-size-4xl: 32px;
+            --font-weight-medium: 500;
+            --font-weight-semibold: 600;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            background-color: var(--background-secondary);
+            color: var(--text-primary);
+        }
+        
+        .app {
+            display: flex;
+            flex-direction: column;
+            height: 700px;
+            background: var(--background-secondary);
+        }
+        
+        .titlebar {
+            background-color: var(--background-primary);
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .titlebar__title {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+        }
+        
+        .main {
+            flex: 1;
+            padding: var(--space-lg);
+            display: flex;
+            justify-content: center;
+        }
+        
+        .container {
+            background-color: var(--background-primary);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
+            box-shadow: var(--shadow-medium);
+            border: 1px solid var(--border-light);
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        .logo {
+            font-size: var(--font-size-4xl);
+            text-align: center;
+            margin-bottom: var(--space-md);
+        }
+        
+        .heading-1 {
+            font-size: var(--font-size-3xl);
+            font-weight: var(--font-weight-semibold);
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        
+        .subtitle {
+            font-size: var(--font-size-base);
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: var(--space-xl);
+        }
+        
+        .nav-tabs {
+            display: flex;
+            background-color: var(--secondary-gray);
+            border-radius: var(--radius-md);
+            padding: 4px;
+            margin-bottom: var(--space-lg);
+        }
+        
+        .nav-tab {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-family: inherit;
+        }
+        
+        .nav-tab--active {
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+        
+        .feature-grid {
+            display: grid;
+            gap: var(--space-md);
+            margin: var(--space-xl) 0;
+        }
+        
+        .feature-card {
+            display: flex;
+            align-items: center;
+            padding: var(--space-md);
+            background-color: #f8f9fa;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-light);
+        }
+        
+        .feature-card__icon {
+            font-size: 24px;
+            margin-right: var(--space-md);
+            width: 48px;
+            text-align: center;
+        }
+        
+        .feature-card__content { flex: 1; }
+        
+        .feature-card__title {
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-semibold);
+            margin-bottom: 4px;
+        }
+        
+        .feature-card__description {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+        }
+        
+        .actions {
+            display: flex;
+            gap: var(--space-md);
+            justify-content: center;
+            margin-top: var(--space-xl);
+        }
+        
+        .btn {
+            padding: 12px 32px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-medium);
+            cursor: pointer;
+            font-family: inherit;
+        }
+        
+        .btn--primary {
+            background-color: var(--primary-blue);
+            color: white;
+        }
+        
+        .btn--secondary {
+            background-color: var(--secondary-gray);
+            color: var(--text-primary);
+            border: 1px solid var(--border-light);
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="titlebar">
+            <div class="titlebar__title">VibeSafe</div>
+        </div>
+        
+        <main class="main">
+            <div class="container">
+                <div class="logo">🔐</div>
+                <h1 class="heading-1">VibeSafe</h1>
+                <p class="subtitle">Secure Secrets Manager with Touch ID Protection</p>
+                
+                <nav class="nav-tabs">
+                    <button class="nav-tab nav-tab--active">Home</button>
+                    <button class="nav-tab">Secrets</button>
+                    <button class="nav-tab">Settings</button>
+                    <button class="nav-tab">Claude</button>
+                </nav>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-card__icon">🛡️</div>
+                        <div class="feature-card__content">
+                            <div class="feature-card__title">Military-Grade Encryption</div>
+                            <div class="feature-card__description">RSA-2048 + AES-256-GCM hybrid encryption</div>
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-card__icon">👆</div>
+                        <div class="feature-card__content">
+                            <div class="feature-card__title">Touch ID Protection</div>
+                            <div class="feature-card__description">Hardware-backed biometric authentication</div>
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-card__icon">🚫</div>
+                        <div class="feature-card__content">
+                            <div class="feature-card__title">Zero Exposure</div>
+                            <div class="feature-card__description">Secrets never exposed in plaintext</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="actions">
+                    <button class="btn btn--primary">Initialize VibeSafe</button>
+                    <button class="btn btn--secondary">Show Status</button>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
