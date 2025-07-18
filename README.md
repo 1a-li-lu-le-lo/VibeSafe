@@ -147,6 +147,34 @@ To use VibeSafe with Claude Code:
 
 ## 🔒 Security
 
+### Binary Verification
+
+Always verify the authenticity of downloaded binaries using SHA-256 checksums:
+
+#### Latest Release Checksums (v1.0.0)
+
+```
+93b2fab9a118dbb61bcf2228ba013263e7b614b538758239338791efae21fcd1  VibeSafe.app.tar
+4ec9d60d746fb61718472966c49a582befab82648d711ae7e4327feebd769a49  vibesafe-app
+943ca61231bedc09f4d5a108b51f004c6929c460594e11a7cb74963d50757efa  vibesafe-frontend.tar.gz
+```
+
+#### How to Verify
+
+```bash
+# Download the binary and checksum file
+curl -LO https://github.com/1a-li-lu-le-lo/VibeSafe/releases/download/v1.0.0/VibeSafe.app.tar
+curl -LO https://github.com/1a-li-lu-le-lo/VibeSafe/releases/download/v1.0.0/SHA256SUMS
+
+# Verify the checksum
+shasum -a 256 -c SHA256SUMS
+
+# Or verify a single file
+shasum -a 256 VibeSafe.app.tar
+```
+
+⚠️ **Important**: If the checksum doesn't match, DO NOT use the binary. Report it as a security issue immediately.
+
 ### Encryption Architecture
 
 - **Hybrid Encryption**: Combines RSA-2048 for key exchange and AES-256-GCM for data encryption
@@ -156,10 +184,11 @@ To use VibeSafe with Claude Code:
 
 ### Security Best Practices
 
-1. **Regular Backups**: Export your encrypted vault regularly
-2. **Strong Authentication**: Ensure Touch ID is properly configured
-3. **Access Control**: Only grant access to trusted applications
-4. **Audit Trail**: Monitor access logs for suspicious activity
+1. **Verify Downloads**: Always check SHA-256 hashes before using binaries
+2. **Regular Backups**: Export your encrypted vault regularly
+3. **Strong Authentication**: Ensure Touch ID is properly configured
+4. **Access Control**: Only grant access to trusted applications
+5. **Audit Trail**: Monitor access logs for suspicious activity
 
 ## 🛠️ Development
 
