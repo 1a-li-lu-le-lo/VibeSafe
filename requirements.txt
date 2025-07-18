@@ -1,0 +1,6 @@
+cryptography>=41.0.0
+click>=8.1.0
+pyobjc-core>=9.0  # For macOS passkey integration
+pyobjc-framework-Security>=9.0  # For macOS Keychain
+pyobjc-framework-LocalAuthentication>=9.0  # For Touch ID/Face ID
+fido2>=1.1.0  # For cross-platform FIDO2/WebAuthn support

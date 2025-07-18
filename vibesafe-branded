@@ -1,0 +1,36 @@
+#!/bin/bash
+# VibeSafe Branded Wrapper Script
+# This script provides a more branded experience for VibeSafe CLI
+
+# Set process name for better identification
+export PYTHONPATH="$PYTHONPATH:$(dirname "$0")/src"
+
+# Create a temporary app bundle structure for better macOS integration
+TEMP_APP_DIR="/tmp/VibeSafe.app"
+if [ ! -d "$TEMP_APP_DIR" ]; then
+    mkdir -p "$TEMP_APP_DIR/Contents/MacOS"
+    mkdir -p "$TEMP_APP_DIR/Contents/Resources"
+    
+    # Create a minimal Info.plist
+    cat > "$TEMP_APP_DIR/Contents/Info.plist" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>VibeSafe</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.vibesafe.cli</string>
+    <key>CFBundleVersion</key>
+    <string>1.0.0</string>
+    <key>CFBundleDisplayName</key>
+    <string>VibeSafe - Secure Secrets Manager</string>
+    <key>CFBundleExecutable</key>
+    <string>vibesafe</string>
+</dict>
+</plist>
+EOF
+fi
+
+# Execute VibeSafe with the branded context
+exec python3 -m vibesafe.vibesafe "$@"
