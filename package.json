@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "VibeSafe - Secure Secrets Manager with Touch ID Protection",
   "main": "src/main.js",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

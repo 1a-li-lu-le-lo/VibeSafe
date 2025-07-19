@@ -284,7 +284,13 @@ async fn get_secret(name: String) -> VibeSafeResult {
                 
                 VibeSafeResult {
                     success: true,
-                    data: Some(serde_json::json!(secret_str)),
+                    data: Some(serde_json::json!({
+                        "value": secret_str,
+                        "masked": format!("{}...{}", 
+                            &secret_str.chars().take(3).collect::<String>(),
+                            &secret_str.chars().rev().take(3).collect::<String>().chars().rev().collect::<String>()
+                        )
+                    })),
                     error: None,
                 }
             } else {

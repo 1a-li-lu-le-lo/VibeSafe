@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from './secure-invoke.js'
 
 // === APPLICATION STATE ===
 
@@ -315,9 +315,18 @@ class VibeSafeApp {
             const result = await invoke('get_secret', { name })
             
             if (result.success) {
-                await navigator.clipboard.writeText(result.data)
+                // Extract the actual value but never log it
+                let secretValue = result.data.value
+                
+                // Copy to clipboard
+                await navigator.clipboard.writeText(secretValue)
+                
+                // Show success with masked value for security
                 this.showToast(`Secret "${name}" copied to clipboard! Will clear in ${this.clipboardTimeout / 1000} seconds.`, 'success')
                 this.startClipboardTimer()
+                
+                // Clear the secret from memory
+                secretValue = null
             } else {
                 this.showToast(`Failed to get secret: ${result.error}`, 'error')
             }
