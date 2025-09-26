@@ -149,7 +149,14 @@ async fn copy_secret_to_clipboard(name: String) -> Result<String, String> {
         write_text(&secret_value)
             .map_err(|e| format!("Failed to copy to clipboard: {}", e))?;
 
-        Ok("Secret copied to clipboard".to_string())
+        // Auto-clear clipboard after 30 seconds for security
+        tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+            // Clear clipboard by overwriting with empty string
+            let _ = write_text("");
+        });
+
+        Ok("Secret copied to clipboard (auto-clear in 30s)".to_string())
     } else {
         let error = String::from_utf8_lossy(&output.stderr);
         Err(format!("VibeSafe error: {}", error))

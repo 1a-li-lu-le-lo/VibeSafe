@@ -144,10 +144,13 @@ class VibeSafe:
                 "Use only letters, numbers, underscore, and hyphen (max 100 chars)"
             )
 
-        # Warn if value provided via command line (security risk) - only in interactive mode
+        # Block CLI argument secrets completely (security critical)
         if value is not None and self.interactive:
-            click.secho("⚠️  Warning: Passing secrets as command arguments is insecure!", fg='yellow', err=True)
-            click.secho("   Consider omitting the value to be prompted securely.", fg='yellow', err=True)
+            raise VibeSafeError(
+                "❌ Secret values cannot be passed as command arguments for security.\n"
+                "   This prevents exposure in process lists and shell history.\n"
+                "   💡 Omit the value to be prompted securely, or use the programmatic API."
+            )
 
         # Get secret value if not provided
         if value is None:

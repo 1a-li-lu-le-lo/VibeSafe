@@ -87,6 +87,8 @@ function App() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newSecretName, setNewSecretName] = useState("");
   const [newSecretValue, setNewSecretValue] = useState("");
+  const [nameValidationError, setNameValidationError] = useState("");
+  const [valueValidationError, setValueValidationError] = useState("");
 
   useEffect(() => {
     loadData();
@@ -117,17 +119,72 @@ function App() {
     }
   };
 
+  // Validation functions
+  const validateSecretName = (name: string): string => {
+    if (!name.trim()) {
+      return "Secret name is required";
+    }
+    if (name.length > 100) {
+      return "Secret name must be 100 characters or less";
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+      return "Secret name can only contain letters, numbers, underscore, and hyphen";
+    }
+    return "";
+  };
+
+  const validateSecretValue = (value: string): string => {
+    if (!value.trim()) {
+      return "Secret value is required";
+    }
+    if (value.length > 10000) {
+      return "Secret value is too long (max 10,000 characters)";
+    }
+    return "";
+  };
+
+  const handleSecretNameChange = (value: string) => {
+    setNewSecretName(value);
+    setNameValidationError(validateSecretName(value));
+  };
+
+  const handleSecretValueChange = (value: string) => {
+    setNewSecretValue(value);
+    setValueValidationError(validateSecretValue(value));
+  };
+
+  const isFormValid = () => {
+    return (
+      newSecretName.trim() &&
+      newSecretValue.trim() &&
+      !nameValidationError &&
+      !valueValidationError
+    );
+  };
+
   const handleAddSecret = async () => {
-    if (!newSecretName.trim() || !newSecretValue.trim()) return;
+    // Final validation before submission
+    const nameError = validateSecretName(newSecretName);
+    const valueError = validateSecretValue(newSecretValue);
+
+    setNameValidationError(nameError);
+    setValueValidationError(valueError);
+
+    if (nameError || valueError) {
+      return;
+    }
 
     try {
-      await invoke("vibesafe_add", { name: newSecretName, value: newSecretValue });
+      await invoke("vibesafe_add", { name: newSecretName.trim(), value: newSecretValue });
       setNewSecretName("");
       setNewSecretValue("");
+      setNameValidationError("");
+      setValueValidationError("");
       setShowAddDialog(false);
       await loadData();
     } catch (error) {
       console.error("Failed to add secret:", error);
+      // You could set an error state here to show user feedback
     }
   };
 
@@ -360,26 +417,59 @@ function App() {
                 <input
                   type="text"
                   value={newSecretName}
-                  onChange={(e) => setNewSecretName(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 border border-input rounded-md bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  onChange={(e) => handleSecretNameChange(e.target.value)}
+                  className={cn(
+                    "w-full mt-1 px-3 py-2 border rounded-md bg-background text-sm focus:outline-none focus:ring-2",
+                    nameValidationError
+                      ? "border-destructive focus:ring-destructive"
+                      : "border-input focus:ring-ring"
+                  )}
                   placeholder="API_KEY, DATABASE_URL, etc."
+                  maxLength={100}
                 />
+                {nameValidationError && (
+                  <p className="text-destructive text-xs mt-1">{nameValidationError}</p>
+                )}
+                <p className="text-muted-foreground text-xs mt-1">
+                  {newSecretName.length}/100 characters
+                </p>
               </div>
               <div>
                 <label className="text-sm font-medium">Secret Value</label>
                 <input
                   type="password"
                   value={newSecretValue}
-                  onChange={(e) => setNewSecretValue(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 border border-input rounded-md bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  onChange={(e) => handleSecretValueChange(e.target.value)}
+                  className={cn(
+                    "w-full mt-1 px-3 py-2 border rounded-md bg-background text-sm focus:outline-none focus:ring-2",
+                    valueValidationError
+                      ? "border-destructive focus:ring-destructive"
+                      : "border-input focus:ring-ring"
+                  )}
                   placeholder="Enter your secret value"
                 />
+                {valueValidationError && (
+                  <p className="text-destructive text-xs mt-1">{valueValidationError}</p>
+                )}
               </div>
               <div className="flex justify-end space-x-2 pt-4">
-                <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowAddDialog(false);
+                    setNewSecretName("");
+                    setNewSecretValue("");
+                    setNameValidationError("");
+                    setValueValidationError("");
+                  }}
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleAddSecret}>
+                <Button
+                  onClick={handleAddSecret}
+                  disabled={!isFormValid()}
+                  className={cn(!isFormValid() && "opacity-50 cursor-not-allowed")}
+                >
                   Add Secret
                 </Button>
               </div>

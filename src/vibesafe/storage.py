@@ -28,12 +28,36 @@ class StorageManager:
         self.base_dir.mkdir(mode=0o700, exist_ok=True)
     
     def _set_file_permissions(self, file_path, mode=0o600):
-        """Set restrictive file permissions"""
+        """Set restrictive file permissions with verification"""
+        import platform
+
         try:
             os.chmod(file_path, mode)
-        except Exception:
-            # Non-fatal on Windows
-            pass
+
+            # Verify permissions were actually set (Unix systems)
+            if platform.system() != 'Windows':
+                actual_mode = os.stat(file_path).st_mode & 0o777
+                if actual_mode != mode:
+                    import warnings
+                    warnings.warn(
+                        f"Failed to set secure permissions on {file_path}. "
+                        f"Expected {oct(mode)}, got {oct(actual_mode)}. "
+                        "This may be a security risk.",
+                        UserWarning
+                    )
+
+        except (OSError, IOError) as e:
+            if platform.system() == 'Windows':
+                # Windows doesn't support Unix-style permissions - this is expected
+                pass
+            else:
+                # On Unix systems, this is a serious issue
+                import warnings
+                warnings.warn(
+                    f"Cannot set file permissions on {file_path}: {e}. "
+                    "This may compromise security.",
+                    UserWarning
+                )
     
     def key_exists(self):
         """Check if key pair exists"""
