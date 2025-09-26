@@ -50,6 +50,36 @@ class StorageManager:
         config = self.load_config()
         return config.get('passkey_enabled', False)
     
+    def save_keys_with_passphrase(self, private_key, public_key, passphrase):
+        """Save key pair with passphrase encryption on private key"""
+        # Serialize keys
+        priv_pem = EncryptionManager.serialize_private_key(private_key, passphrase)
+        pub_pem = EncryptionManager.serialize_public_key(public_key)
+
+        # Save private key atomically
+        temp_fd, temp_path = tempfile.mkstemp(dir=str(self.base_dir), suffix='.tmp')
+        try:
+            os.write(temp_fd, priv_pem)
+            os.close(temp_fd)
+            self._set_file_permissions(temp_path, 0o600)
+            os.replace(temp_path, self.priv_key_file)
+        except Exception as e:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+            raise StorageError(f"Failed to save private key: {e}")
+
+        # Save public key atomically
+        temp_fd, temp_path = tempfile.mkstemp(dir=str(self.base_dir), suffix='.tmp')
+        try:
+            os.write(temp_fd, pub_pem)
+            os.close(temp_fd)
+            self._set_file_permissions(temp_path, 0o644)
+            os.replace(temp_path, self.pub_key_file)
+        except Exception as e:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+            raise StorageError(f"Failed to save public key: {e}")
+
     def save_keys(self, private_key, public_key):
         """Save key pair to files atomically"""
         # Serialize keys
@@ -96,13 +126,17 @@ class StorageManager:
                 os.unlink(temp_path)
             raise StorageError(f"Failed to save private key: {e}")
     
-    def load_private_key(self):
-        """Load private key from file"""
+    def load_private_key(self, passphrase=None):
+        """Load private key from file
+
+        Args:
+            passphrase: Optional passphrase to decrypt the key
+        """
         if not self.priv_key_file.exists():
             raise StorageError("Private key file not found")
-        
+
         pem_data = self.priv_key_file.read_bytes()
-        return EncryptionManager.deserialize_private_key(pem_data)
+        return EncryptionManager.deserialize_private_key(pem_data, passphrase)
     
     def load_public_key(self):
         """Load public key from file"""

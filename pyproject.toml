@@ -1,0 +1,125 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vibesafe"
+version = "1.0.0"
+description = "Secure secrets manager with Touch ID/passkey protection for AI-assisted development"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "VibeSafe Team"},
+]
+maintainers = [
+    {name = "VibeSafe Contributors"},
+]
+keywords = [
+    "secrets",
+    "security",
+    "encryption",
+    "touch-id",
+    "face-id",
+    "biometric",
+    "keychain",
+    "claude",
+    "ai",
+    "api-keys",
+    "password-manager",
+    "fido2",
+    "passkey"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Security :: Cryptography",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Systems Administration",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Environment :: Console",
+]
+
+dependencies = [
+    "cryptography>=41.0.0",
+    "click>=8.1.0",
+]
+
+[project.optional-dependencies]
+macos = [
+    "pyobjc-core>=9.0",
+    "pyobjc-framework-Security>=9.0",
+    "pyobjc-framework-LocalAuthentication>=9.0",
+    "pyobjc-framework-AuthenticationServices>=9.0",
+    "pyobjc-framework-WebKit>=9.0",
+]
+fido2 = [
+    "fido2>=1.1.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "build>=0.10.0",
+    "twine>=4.0.0",
+]
+all = [
+    "vibesafe[macos,fido2]",
+]
+
+[project.urls]
+Homepage = "https://github.com/1a-li-lu-le-lo/VibeSafe"
+Documentation = "https://github.com/1a-li-lu-le-lo/VibeSafe#readme"
+Repository = "https://github.com/1a-li-lu-le-lo/VibeSafe"
+Issues = "https://github.com/1a-li-lu-le-lo/VibeSafe/issues"
+
+[project.scripts]
+vibesafe = "vibesafe.vibesafe:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["vibesafe*"]
+exclude = ["tests*"]
+
+[tool.setuptools.package-data]
+vibesafe = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.black]
+line-length = 120
+target-version = ["py38", "py39", "py310", "py311"]
+
+[tool.flake8]
+max-line-length = 120
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    ".eggs",
+    "*.egg-info",
+]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true

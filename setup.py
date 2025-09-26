@@ -3,6 +3,7 @@ Setup script for VibeSafe
 """
 from setuptools import setup, find_packages
 import platform
+from pathlib import Path
 
 # Base requirements
 install_requires = [
@@ -38,11 +39,18 @@ setup(
     name="vibesafe",
     version="1.0.0",
     author="VibeSafe Team",
-    author_email="security@vibesafe.io",
-    description="Secure secrets manager with passkey protection for Claude Code",
-    long_description="See README.md for details",
+    author_email="",
+    maintainer="VibeSafe Contributors",
+    description="Secure secrets manager with Touch ID/passkey protection for AI-assisted development",
+    keywords="secrets, security, encryption, touch-id, biometric, keychain, claude, ai, api-keys, password-manager",
+    long_description=Path("README.md").read_text(encoding="utf-8") if Path("README.md").exists() else "",
     long_description_content_type="text/markdown",
-    url="https://github.com/vibesafe/vibesafe",
+    url="https://github.com/1a-li-lu-le-lo/VibeSafe",
+    project_urls={
+        "Bug Reports": "https://github.com/1a-li-lu-le-lo/VibeSafe/issues",
+        "Source": "https://github.com/1a-li-lu-le-lo/VibeSafe",
+        "Documentation": "https://github.com/1a-li-lu-le-lo/VibeSafe#readme",
+    },
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     classifiers=[
@@ -62,7 +70,7 @@ setup(
     extras_require=extras_require,
     entry_points={
         "console_scripts": [
-            "vibesafe=vibesafe:cli",
+            "vibesafe=vibesafe.vibesafe:cli",
         ],
     },
     include_package_data=True,

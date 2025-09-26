@@ -9,6 +9,8 @@ import base64
 import platform
 import tarfile
 import datetime
+import stat
+import re
 from pathlib import Path
 from getpass import getpass
 
@@ -94,15 +96,38 @@ class VibeSafe:
         elif FIDO2_AVAILABLE and passkey_type is None:
             self.passkey_manager = Fido2PasskeyManager()
     
-    def init_keys(self):
-        """Initialize a new RSA key pair"""
+    def init_keys(self, use_passphrase=False, passphrase=None):
+        """Initialize a new RSA key pair
+
+        Args:
+            use_passphrase: Whether to encrypt the private key with a passphrase
+            passphrase: The passphrase to use (will prompt if None and use_passphrase is True)
+        """
         if self.storage.key_exists():
             raise VibeSafeError("Key pair already exists. Use --force to regenerate.")
-        
+
         click.echo("Generating new RSA key pair...")
         private_key, public_key = self.encryption.generate_key_pair()
-        
-        self.storage.save_keys(private_key, public_key)
+
+        # Optionally encrypt private key with passphrase
+        if use_passphrase:
+            if passphrase is None:
+                passphrase = getpass("Enter passphrase to protect private key: ")
+                passphrase_confirm = getpass("Confirm passphrase: ")
+                if passphrase != passphrase_confirm:
+                    raise VibeSafeError("Passphrases do not match")
+                if len(passphrase) < 8:
+                    raise VibeSafeError("Passphrase must be at least 8 characters")
+
+            # Save with passphrase encryption
+            self.storage.save_keys_with_passphrase(private_key, public_key, passphrase.encode())
+            config = self.storage.load_config()
+            config['key_encrypted'] = True
+            self.storage.save_config(config)
+            click.secho("🔐 Private key encrypted with passphrase", fg='green')
+        else:
+            self.storage.save_keys(private_key, public_key)
+
         click.echo(f"✓ Public key saved to:  {self.storage.pub_key_file}")
         click.echo(f"✓ Private key saved to: {self.storage.priv_key_file}")
         click.echo("\n⚠️  Keep your private key safe! If lost, you cannot decrypt existing secrets.")
@@ -111,6 +136,13 @@ class VibeSafe:
         """Add a new secret"""
         if not self.storage.key_exists():
             raise VibeSafeError("No key pair found. Run 'vibesafe init' first.")
+
+        # Validate secret name
+        if not self._validate_secret_name(name):
+            raise VibeSafeError(
+                f"Invalid secret name '{name}'. "
+                "Use only letters, numbers, underscore, and hyphen (max 100 chars)"
+            )
 
         # Warn if value provided via command line (security risk) - only in interactive mode
         if value is not None and self.interactive:
@@ -156,7 +188,15 @@ class VibeSafe:
 
         # Load private key (may trigger passkey authentication)
         # Use silent mode for programmatic API calls
-        private_key = self._load_private_key_with_auth(silent=return_value)
+        # Check for passphrase-encrypted keys
+        config = self.storage.load_config()
+        passphrase = None
+        if config.get('key_encrypted', False) and not (self.passkey_manager and self.passkey_manager.is_enabled()):
+            passphrase = self._prompt_for_passphrase()
+            if passphrase:
+                passphrase = passphrase.encode()
+
+        private_key = self._load_private_key_with_auth(silent=return_value, passphrase=passphrase)
 
         # Decrypt secret
         encrypted_data = secrets[name]
@@ -165,11 +205,22 @@ class VibeSafe:
 
             # Either return the value (for internal use) or write to stdout (for CLI use)
             if return_value:
-                return plaintext
+                # Clear from memory as soon as possible
+                result = plaintext
+                plaintext = None
+                return result
             else:
+                # Check if output is going to terminal (potential security risk)
+                if sys.stdout.isatty() and self.interactive:
+                    click.secho("⚠️  Warning: This will display your secret on screen!", fg='yellow', err=True)
+                    if not click.confirm("Continue?", default=False):
+                        raise VibeSafeError("Secret retrieval cancelled for security")
+
                 # Write directly to stdout buffer to avoid encoding issues
                 # This ensures the secret goes directly to the destination without being visible
                 sys.stdout.buffer.write(plaintext.encode('utf-8'))
+                # Clear from memory
+                plaintext = None
         except ValueError as e:
             # ValueError typically means wrong key or corrupted data
             raise VibeSafeError(f"Failed to decrypt secret '{name}'. The data may be corrupted or the key may be wrong.")
@@ -604,7 +655,7 @@ class VibeSafe:
         """Show system status"""
         click.echo("VibeSafe Status")
         click.echo("=" * 40)
-        
+
         # Key status
         if self.storage.key_exists():
             click.echo(f"✓ Key pair initialized")
@@ -615,7 +666,7 @@ class VibeSafe:
                 click.echo(f"  Private key: In secure storage")
         else:
             click.echo("✗ No key pair found")
-        
+
         # Passkey status
         if self.passkey_manager and self.passkey_manager.is_enabled():
             click.echo(f"\n✓ Passkey protection: ENABLED")
@@ -625,16 +676,33 @@ class VibeSafe:
                 click.echo("  Type: FIDO2/WebAuthn")
         else:
             click.echo(f"\n✗ Passkey protection: DISABLED")
-        
+
+        # Claude integration status
+        claude_file = Path.cwd() / "CLAUDE.md"
+        config = self.storage.load_config()
+        claude_configured = config.get('claude_configured', False) or claude_file.exists()
+
+        if claude_configured:
+            click.echo(f"\n✓ Claude Code integration: CONFIGURED")
+            if claude_file.exists():
+                click.echo(f"  Config file: {claude_file}")
+        else:
+            click.echo(f"\n✗ Claude Code integration: NOT CONFIGURED")
+            click.echo("  Run 'vibesafe claude setup' in your project directory")
+
+        # Check file permissions
+        self._check_file_permissions()
+
         # Secrets count
         secrets = self.storage.load_secrets()
         click.echo(f"\nSecrets stored: {len(secrets)}")
     
-    def _load_private_key_with_auth(self, silent=False):
+    def _load_private_key_with_auth(self, silent=False, passphrase=None):
         """Load private key, handling passkey authentication if enabled
 
         Args:
             silent: If True, suppress authentication prompts (for API usage)
+            passphrase: Optional passphrase for encrypted keys
         """
         if self.passkey_manager and self.passkey_manager.is_enabled():
             # This will trigger biometric/passkey authentication
@@ -664,8 +732,60 @@ class VibeSafe:
                         raise VibeSafeError("Authentication failed")
                 raise VibeSafeError(f"Authentication error: {str(e)}")
         else:
-            # Load from file
-            return self.storage.load_private_key()
+            # Load from file (potentially with passphrase)
+            return self.storage.load_private_key(passphrase)
+
+    def _check_file_permissions(self):
+        """Check and warn about insecure file permissions"""
+        warnings = []
+
+        # Check directory permissions
+        if self.storage.base_dir.exists():
+            dir_stat = os.stat(self.storage.base_dir)
+            if dir_stat.st_mode & 0o077:  # Group/other have permissions
+                perms = stat.filemode(dir_stat.st_mode)
+                warnings.append(f"Directory {self.storage.base_dir}: {perms} (should be 700)")
+
+        # Check private key if it exists as file
+        if self.storage.private_key_file_exists():
+            key_stat = os.stat(self.storage.priv_key_file)
+            if key_stat.st_mode & 0o077:
+                perms = stat.filemode(key_stat.st_mode)
+                warnings.append(f"Private key: {perms} (should be 600)")
+
+        # Check secrets file
+        if self.storage.secrets_file.exists():
+            secrets_stat = os.stat(self.storage.secrets_file)
+            if secrets_stat.st_mode & 0o077:
+                perms = stat.filemode(secrets_stat.st_mode)
+                warnings.append(f"Secrets file: {perms} (should be 600)")
+
+        if warnings:
+            click.echo("\n⚠️  Security Warnings:")
+            for warning in warnings:
+                click.secho(f"  {warning}", fg='yellow')
+            click.echo("  Fix with: chmod 700 ~/.vibesafe && chmod 600 ~/.vibesafe/*")
+
+    def _validate_secret_name(self, name: str) -> bool:
+        """Validate secret name for safety"""
+        # Only allow alphanumeric, underscore, hyphen
+        # Max length 100 chars
+        if not name or len(name) > 100:
+            return False
+        pattern = r'^[a-zA-Z0-9_-]+$'
+        return bool(re.match(pattern, name))
+
+    def _prompt_for_passphrase(self) -> str:
+        """Prompt for passphrase to decrypt private key"""
+        config = self.storage.load_config()
+        if not config.get('key_encrypted', False):
+            return None
+
+        try:
+            passphrase = getpass("Enter passphrase for private key: ")
+            return passphrase
+        except KeyboardInterrupt:
+            raise VibeSafeError("\nPassphrase entry cancelled")
 
 
 @click.group()

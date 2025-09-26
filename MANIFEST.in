@@ -1,0 +1,12 @@
+include README.md
+include LICENSE
+include PROGRAMMATIC_API.md
+include requirements.txt
+recursive-include examples *.py *.md
+recursive-include docs *.md
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * .DS_Store
+recursive-exclude .vibesafe *
+global-exclude *.pem
+global-exclude secrets.json

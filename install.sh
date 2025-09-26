@@ -81,8 +81,12 @@ echo
 echo "🎉 Installation complete!"
 echo
 echo "Next steps:"
-echo "1. Initialize VibeSafe: vibesafe init"
-echo "2. Add your first secret: vibesafe add API_KEY"
-echo "3. Enable passkey protection: vibesafe passkey enable"
+echo "1. Run interactive setup (recommended): vibesafe setup"
+echo "   Or manually:"
+echo "   • Initialize VibeSafe: vibesafe init"
+echo "   • Add your first secret: vibesafe add API_KEY"
+echo "   • Enable passkey protection: vibesafe passkey enable"
+echo "2. Configure Claude Code integration: vibesafe claude setup"
+echo "   (Run this in your project directory for AI-assisted development)"
 echo
 echo "For more information, see README.md"

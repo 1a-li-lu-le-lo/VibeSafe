@@ -1,0 +1,33 @@
+[package]
+name = "vibesafe-app"
+version = "1.0.0"
+description = "VibeSafe Desktop - Secure secrets manager with Touch ID protection"
+authors = ["VibeSafe Team"]
+license = "MIT"
+repository = "https://github.com/your-org/vibesafe"
+default-run = "vibesafe-app"
+edition = "2021"
+rust-version = "1.60"
+
+[build-dependencies]
+tauri-build = { version = "1.0", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+tauri = { version = "1.0", features = [ "api-all", "system-tray", "shell-sidecar", "shell-execute", "dialog-all", "fs-read-file", "fs-write-file", "fs-read-dir", "fs-create-dir", "fs-exists", "path-all", "notification-all", "clipboard-write-text"] }
+tokio = { version = "1", features = ["full"] }
+uuid = { version = "1.0", features = ["v4"] }
+dirs = "5.0"
+
+[features]
+# by default Tauri runs in production mode
+# when `tauri dev` runs it is executed with `cargo run --no-default-features` if `devPath` is an URL
+default = [ "custom-protocol" ]
+# this feature is used used for production builds where `devPath` points to the filesystem
+# DO NOT remove this
+custom-protocol = [ "tauri/custom-protocol" ]
+
+[[bin]]
+name = "vibesafe-app"
+path = "src/main.rs"

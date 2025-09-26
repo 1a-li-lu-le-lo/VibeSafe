@@ -208,7 +208,7 @@ class SetupWizard:
                 return True
         else:
             click.echo("⏭️  Skipping Claude Code integration")
-            click.echo("   You can set this up later with: vibesafe setup claude")
+            click.echo("   You can set this up later with: vibesafe claude setup")
             return True
     
     def _step_completion_summary(self):
