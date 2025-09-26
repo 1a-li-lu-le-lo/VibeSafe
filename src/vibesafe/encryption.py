@@ -65,28 +65,52 @@ class EncryptionManager:
     def decrypt_secret(self, encrypted_data: dict, private_key) -> str:
         """
         Decrypt a secret using the private key
+
+        Raises:
+            KeyError: If encrypted_data is missing required fields
+            ValueError: If decryption fails (wrong key, corrupted data)
+            UnicodeDecodeError: If decrypted data is not valid UTF-8
         """
-        # Decode from base64
-        encrypted_key = base64.b64decode(encrypted_data['enc_key'])
-        nonce = base64.b64decode(encrypted_data['nonce'])
-        ciphertext = base64.b64decode(encrypted_data['ciphertext'])
-        
-        # Decrypt the AES key with RSA private key
-        aes_key = private_key.decrypt(
-            encrypted_key,
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None
+        # Validate required fields
+        required_fields = ['enc_key', 'nonce', 'ciphertext']
+        for field in required_fields:
+            if field not in encrypted_data:
+                raise KeyError(f"Encrypted data missing required field: {field}")
+
+        try:
+            # Decode from base64
+            encrypted_key = base64.b64decode(encrypted_data['enc_key'])
+            nonce = base64.b64decode(encrypted_data['nonce'])
+            ciphertext = base64.b64decode(encrypted_data['ciphertext'])
+        except Exception as e:
+            raise ValueError(f"Failed to decode base64 data: {str(e)}")
+
+        try:
+            # Decrypt the AES key with RSA private key
+            aes_key = private_key.decrypt(
+                encrypted_key,
+                padding.OAEP(
+                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                    algorithm=hashes.SHA256(),
+                    label=None
+                )
             )
-        )
-        
-        # Decrypt the ciphertext with AES-GCM
-        aesgcm = AESGCM(aes_key)
-        plaintext_bytes = aesgcm.decrypt(nonce, ciphertext, None)
-        
+        except Exception as e:
+            raise ValueError(f"Failed to decrypt AES key with RSA: {str(e)}")
+
+        try:
+            # Decrypt the ciphertext with AES-GCM
+            aesgcm = AESGCM(aes_key)
+            plaintext_bytes = aesgcm.decrypt(nonce, ciphertext, None)
+        except Exception as e:
+            # This usually means the ciphertext was tampered with or corrupted
+            raise ValueError(f"Failed to decrypt data with AES-GCM: {str(e)}")
+
         # Convert back to string
-        return plaintext_bytes.decode('utf-8')
+        try:
+            return plaintext_bytes.decode('utf-8')
+        except UnicodeDecodeError as e:
+            raise ValueError(f"Decrypted data is not valid UTF-8: {str(e)}")
     
     @staticmethod
     def serialize_private_key(private_key, password=None):

@@ -4,6 +4,7 @@ Handles file operations with proper permissions
 """
 import os
 import json
+import tempfile
 from pathlib import Path
 from .encryption import EncryptionManager
 from .exceptions import StorageError
@@ -50,24 +51,50 @@ class StorageManager:
         return config.get('passkey_enabled', False)
     
     def save_keys(self, private_key, public_key):
-        """Save key pair to files"""
+        """Save key pair to files atomically"""
         # Serialize keys
         priv_pem = EncryptionManager.serialize_private_key(private_key)
         pub_pem = EncryptionManager.serialize_public_key(public_key)
-        
-        # Write private key with restricted permissions
-        self.priv_key_file.write_bytes(priv_pem)
-        self._set_file_permissions(self.priv_key_file, 0o600)
-        
-        # Write public key (can be less restrictive)
-        self.pub_key_file.write_bytes(pub_pem)
-        self._set_file_permissions(self.pub_key_file, 0o644)
+
+        # Save private key atomically
+        temp_fd, temp_path = tempfile.mkstemp(dir=str(self.base_dir), suffix='.tmp')
+        try:
+            os.write(temp_fd, priv_pem)
+            os.close(temp_fd)
+            self._set_file_permissions(temp_path, 0o600)
+            os.replace(temp_path, self.priv_key_file)
+        except Exception as e:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+            raise StorageError(f"Failed to save private key: {e}")
+
+        # Save public key atomically
+        temp_fd, temp_path = tempfile.mkstemp(dir=str(self.base_dir), suffix='.tmp')
+        try:
+            os.write(temp_fd, pub_pem)
+            os.close(temp_fd)
+            self._set_file_permissions(temp_path, 0o644)
+            os.replace(temp_path, self.pub_key_file)
+        except Exception as e:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+            raise StorageError(f"Failed to save public key: {e}")
     
     def save_private_key(self, private_key):
-        """Save only the private key"""
+        """Save only the private key atomically"""
         priv_pem = EncryptionManager.serialize_private_key(private_key)
-        self.priv_key_file.write_bytes(priv_pem)
-        self._set_file_permissions(self.priv_key_file, 0o600)
+
+        # Atomic write
+        temp_fd, temp_path = tempfile.mkstemp(dir=str(self.base_dir), suffix='.tmp')
+        try:
+            os.write(temp_fd, priv_pem)
+            os.close(temp_fd)
+            self._set_file_permissions(temp_path, 0o600)
+            os.replace(temp_path, self.priv_key_file)
+        except Exception as e:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+            raise StorageError(f"Failed to save private key: {e}")
     
     def load_private_key(self):
         """Load private key from file"""
@@ -110,13 +137,27 @@ class StorageManager:
         return {}
     
     def save_secrets(self, secrets):
-        """Save secrets to JSON file"""
+        """Save secrets to JSON file atomically"""
         self._ensure_directory()
-        
-        with open(self.secrets_file, 'w') as f:
-            json.dump(secrets, f, indent=2)
-        
-        self._set_file_permissions(self.secrets_file, 0o600)
+
+        # Use atomic write: write to temp file then rename
+        # This prevents data corruption if process is interrupted
+        temp_fd, temp_path = tempfile.mkstemp(dir=str(self.base_dir), suffix='.tmp')
+        try:
+            # Write to temp file
+            with os.fdopen(temp_fd, 'w') as f:
+                json.dump(secrets, f, indent=2)
+
+            # Set permissions on temp file
+            self._set_file_permissions(temp_path, 0o600)
+
+            # Atomic rename (replaces existing file atomically)
+            os.replace(temp_path, self.secrets_file)
+        except Exception as e:
+            # Clean up temp file on error
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+            raise StorageError(f"Failed to save secrets: {e}")
     
     def load_config(self):
         """Load configuration"""
@@ -130,10 +171,20 @@ class StorageManager:
             return {}
     
     def save_config(self, config):
-        """Save configuration"""
+        """Save configuration atomically"""
         self._ensure_directory()
-        
-        with open(self.config_file, 'w') as f:
-            json.dump(config, f, indent=2)
-        
-        self._set_file_permissions(self.config_file, 0o600)
+
+        # Use atomic write for config too
+        temp_fd, temp_path = tempfile.mkstemp(dir=str(self.base_dir), suffix='.tmp')
+        try:
+            with os.fdopen(temp_fd, 'w') as f:
+                json.dump(config, f, indent=2)
+
+            self._set_file_permissions(temp_path, 0o600)
+
+            # Atomic rename
+            os.replace(temp_path, self.config_file)
+        except Exception as e:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+            raise StorageError(f"Failed to save config: {e}")

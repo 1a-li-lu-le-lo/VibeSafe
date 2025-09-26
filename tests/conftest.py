@@ -5,6 +5,7 @@ import pytest
 import os
 import sys
 from pathlib import Path
+from click.testing import CliRunner
 
 # Add src to path for imports
 src_path = Path(__file__).parent.parent / "src"
@@ -51,3 +52,11 @@ def temp_dir(tmp_path, monkeypatch):
     monkeypatch.setenv('HOME', str(tmp_path))
     monkeypatch.setenv('USERPROFILE', str(tmp_path))
     return str(tmp_path)
+
+
+@pytest.fixture
+def runner(temp_dir):
+    """Create a CLI runner with isolated environment"""
+    runner = CliRunner()
+    with runner.isolated_filesystem(temp_dir=temp_dir):
+        yield runner

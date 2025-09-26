@@ -7,6 +7,8 @@ import sys
 import json
 import base64
 import platform
+import tarfile
+import datetime
 from pathlib import Path
 from getpass import getpass
 
@@ -19,6 +21,24 @@ from cryptography.hazmat.backends import default_backend
 from .encryption import EncryptionManager
 from .storage import StorageManager
 from .exceptions import VibeSafeError, PasskeyError
+
+
+def create_api_client():
+    """Create a VibeSafe instance optimized for programmatic API usage.
+
+    This creates a non-interactive instance that suppresses CLI prompts
+    and is suitable for use in scripts, automation, and AI tool integration.
+
+    Returns:
+        VibeSafe: A non-interactive VibeSafe instance
+
+    Example:
+        >>> from vibesafe import create_api_client
+        >>> vs = create_api_client()
+        >>> secret = vs.fetch_secret("API_KEY")
+        >>> vs.store_secret("NEW_KEY", "value123")
+    """
+    return VibeSafe(interactive=False)
 
 # Check if running on macOS for passkey support
 IS_MACOS = platform.system() == 'Darwin'
@@ -42,16 +62,36 @@ except ImportError:
 
 
 class VibeSafe:
-    def __init__(self):
+    """VibeSafe - Secure Secrets Manager
+
+    This class provides both CLI and programmatic interfaces for secure secret management.
+    The programmatic API methods (fetch_secret, store_secret, etc.) can be used for
+    integration with external tools and AI assistants without exposing secrets to stdout.
+    """
+    def __init__(self, passkey_type=None, interactive=True):
+        """Initialize VibeSafe
+
+        Args:
+            passkey_type: Optional passkey type override ('keychain' or 'fido2')
+            interactive: Whether to show prompts and messages (False for API usage)
+        """
         self.storage = StorageManager()
         self.encryption = EncryptionManager()
-        
-        # Initialize passkey manager if available
+        self.interactive = interactive
+
+        # Initialize passkey manager based on preference or availability
         self.passkey_manager = None
-        if IS_MACOS and PASSKEY_AVAILABLE:
+
+        if passkey_type == 'fido2' and FIDO2_AVAILABLE:
+            self.passkey_manager = Fido2PasskeyManager()
+        elif passkey_type == 'keychain' and IS_MACOS and PASSKEY_AVAILABLE:
             self.passkey_manager = MacPasskeyManager()
             self.passkey_manager.storage = self.storage
-        elif FIDO2_AVAILABLE:
+        elif IS_MACOS and PASSKEY_AVAILABLE and passkey_type is None:
+            # Default to keychain on macOS if no preference
+            self.passkey_manager = MacPasskeyManager()
+            self.passkey_manager.storage = self.storage
+        elif FIDO2_AVAILABLE and passkey_type is None:
             self.passkey_manager = Fido2PasskeyManager()
     
     def init_keys(self):
@@ -71,14 +111,19 @@ class VibeSafe:
         """Add a new secret"""
         if not self.storage.key_exists():
             raise VibeSafeError("No key pair found. Run 'vibesafe init' first.")
-        
+
+        # Warn if value provided via command line (security risk) - only in interactive mode
+        if value is not None and self.interactive:
+            click.secho("⚠️  Warning: Passing secrets as command arguments is insecure!", fg='yellow', err=True)
+            click.secho("   Consider omitting the value to be prompted securely.", fg='yellow', err=True)
+
         # Get secret value if not provided
         if value is None:
             try:
                 value = getpass(f"Enter secret value for '{name}': ")
             except KeyboardInterrupt:
                 raise VibeSafeError("\nOperation cancelled.")
-        
+
         # Check if secret already exists
         secrets = self.storage.load_secrets()
         if name in secrets and not overwrite:
@@ -92,29 +137,49 @@ class VibeSafe:
         secrets[name] = encrypted_data
         self.storage.save_secrets(secrets)
         
-        click.echo(f"✓ Secret '{name}' has been added and encrypted.")
+        if self.interactive:
+            click.echo(f"✓ Secret '{name}' has been added and encrypted.")
     
-    def get_secret(self, name):
-        """Retrieve and decrypt a secret"""
+    def get_secret(self, name, return_value=False):
+        """Retrieve and decrypt a secret
+
+        Args:
+            name: The name of the secret to retrieve
+            return_value: If True, return the plaintext instead of writing to stdout (for internal use)
+        """
         if not self.storage.key_exists():
             raise VibeSafeError("No key pair found. Run 'vibesafe init' first.")
-        
+
         secrets = self.storage.load_secrets()
         if name not in secrets:
             raise VibeSafeError(f"Secret '{name}' not found.")
-        
+
         # Load private key (may trigger passkey authentication)
-        private_key = self._load_private_key_with_auth()
-        
+        # Use silent mode for programmatic API calls
+        private_key = self._load_private_key_with_auth(silent=return_value)
+
         # Decrypt secret
         encrypted_data = secrets[name]
         try:
             plaintext = self.encryption.decrypt_secret(encrypted_data, private_key)
-            # Write directly to stdout buffer to avoid encoding issues
-            # This ensures the secret goes directly to the destination without being visible
-            sys.stdout.buffer.write(plaintext.encode('utf-8'))
+
+            # Either return the value (for internal use) or write to stdout (for CLI use)
+            if return_value:
+                return plaintext
+            else:
+                # Write directly to stdout buffer to avoid encoding issues
+                # This ensures the secret goes directly to the destination without being visible
+                sys.stdout.buffer.write(plaintext.encode('utf-8'))
+        except ValueError as e:
+            # ValueError typically means wrong key or corrupted data
+            raise VibeSafeError(f"Failed to decrypt secret '{name}'. The data may be corrupted or the key may be wrong.")
+        except KeyError as e:
+            # KeyError means the encrypted data structure is malformed
+            raise VibeSafeError(f"Secret '{name}' has invalid format. The data may be corrupted.")
         except Exception as e:
-            # Don't include decryption details in error message for security
+            # Catch-all for other errors, but log the type for debugging
+            import logging
+            logging.debug(f"Decryption error type: {type(e).__name__}")
             raise VibeSafeError(f"Failed to decrypt secret '{name}'. Please check your authentication.")
     
     def list_secrets(self):
@@ -143,27 +208,259 @@ class VibeSafe:
         self.storage.save_secrets(secrets)
         click.echo(f"✓ Secret '{name}' has been deleted.")
     
-    def enable_passkey(self):
-        """Enable passkey protection"""
+    def enable_passkey(self, passkey_type=None):
+        """Enable passkey protection
+
+        Args:
+            passkey_type: Optional passkey type to enable ('keychain' or 'fido2')
+        """
         if not self.passkey_manager:
-            raise VibeSafeError("Passkey support not available on this platform.")
-        
+            # Try to initialize with specified type
+            if passkey_type == 'fido2' and FIDO2_AVAILABLE:
+                self.passkey_manager = Fido2PasskeyManager()
+            elif passkey_type == 'keychain' and IS_MACOS and PASSKEY_AVAILABLE:
+                self.passkey_manager = MacPasskeyManager()
+                self.passkey_manager.storage = self.storage
+            else:
+                raise VibeSafeError("Passkey support not available on this platform.")
+
         if not self.storage.key_exists():
             raise VibeSafeError("No key pair found. Run 'vibesafe init' first.")
-        
+
         # Load existing private key
         private_key = self.storage.load_private_key()
-        
+
         # Store in secure storage (Keychain on macOS, encrypted with FIDO2 elsewhere)
-        click.echo("Enabling passkey protection...")
+        click.secho("🔐 Enabling passkey protection...", fg='cyan')
         self.passkey_manager.store_private_key(private_key)
-        
+
         # Remove the plaintext private key file
         self.storage.remove_private_key_file()
-        
-        click.echo("✓ Passkey protection enabled. Private key moved to secure storage.")
-        click.echo("  You'll be prompted for biometric authentication when accessing secrets.")
+
+        # Show success with appropriate message
+        if isinstance(self.passkey_manager, MacPasskeyManager) if 'MacPasskeyManager' in globals() else False:
+            click.secho("✅ Keychain passkey protection enabled!", fg='green')
+            click.secho("   Private key moved to macOS Keychain.", fg='green')
+            click.secho("   You'll be prompted for Touch ID/Face ID when accessing secrets.", fg='cyan')
+        else:
+            click.secho("✅ FIDO2 passkey protection enabled!", fg='green')
+            click.secho("   Private key secured with your hardware key.", fg='green')
+            click.secho("   You'll need your security key when accessing secrets.", fg='cyan')
     
+    def rotate_keys(self):
+        """Rotate encryption keys - generates new keys and re-encrypts all secrets."""
+        if not self.storage.key_exists():
+            raise VibeSafeError("No key pair found. Nothing to rotate.")
+
+        # Load all secrets with current key
+        click.secho("🔄 Starting key rotation...", fg='cyan')
+        secrets = self.storage.load_secrets()
+        if not secrets:
+            raise VibeSafeError("No secrets to rotate. Key rotation aborted.")
+
+        click.echo(f"Found {len(secrets)} secret(s) to re-encrypt.")
+
+        # Load current private key (may trigger passkey auth)
+        click.echo("🔓 Loading current private key...")
+        old_private_key = self._load_private_key_with_auth()
+
+        # Decrypt all secrets with old key
+        click.echo("🔓 Decrypting secrets with current key...")
+        decrypted_secrets = {}
+        for name, encrypted_data in secrets.items():
+            try:
+                plaintext = self.encryption.decrypt_secret(encrypted_data, old_private_key)
+                decrypted_secrets[name] = plaintext
+            except Exception as e:
+                raise VibeSafeError(f"Failed to decrypt secret '{name}' during rotation: {e}")
+
+        # Generate new key pair
+        click.echo("🔐 Generating new key pair...")
+        new_private_key, new_public_key = self.encryption.generate_key_pair()
+
+        # Re-encrypt all secrets with new key
+        click.echo("🔒 Re-encrypting secrets with new key...")
+        new_encrypted_secrets = {}
+        for name, plaintext in decrypted_secrets.items():
+            encrypted_data = self.encryption.encrypt_secret(plaintext, new_public_key)
+            new_encrypted_secrets[name] = encrypted_data
+
+        # Backup old keys (just in case)
+        backup_dir = self.storage.base_dir / 'key_backup'
+        backup_dir.mkdir(mode=0o700, exist_ok=True)
+        import datetime
+        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+
+        if self.storage.private_key_file_exists():
+            old_priv_backup = backup_dir / f'private_{timestamp}.pem'
+            import shutil
+            shutil.copy2(self.storage.priv_key_file, old_priv_backup)
+            click.echo(f"💾 Backed up old private key to: {old_priv_backup}")
+
+        old_pub_backup = backup_dir / f'public_{timestamp}.pem'
+        import shutil
+        shutil.copy2(self.storage.pub_key_file, old_pub_backup)
+        click.echo(f"💾 Backed up old public key to: {old_pub_backup}")
+
+        # Save new keys and re-encrypted secrets
+        self.storage.save_keys(new_private_key, new_public_key)
+        self.storage.save_secrets(new_encrypted_secrets)
+
+        # If passkey was enabled, update it with new key
+        if self.passkey_manager and self.passkey_manager.is_enabled():
+            click.echo("🔐 Updating passkey protection with new key...")
+            self.passkey_manager.store_private_key(new_private_key)
+            self.storage.remove_private_key_file()
+
+        click.secho("✅ Key rotation complete!", fg='green')
+        click.secho(f"   • {len(new_encrypted_secrets)} secret(s) re-encrypted", fg='green')
+        click.secho(f"   • Old keys backed up to: {backup_dir}", fg='cyan')
+        click.secho("   • New keys are now active", fg='green')
+
+    def export_backup(self, output_file: str = None, include_private_key: bool = False):
+        """Export encrypted secrets and optionally keys for backup.
+
+        Args:
+            output_file: Path to output file (defaults to vibesafe_backup_<timestamp>.tar)
+            include_private_key: Whether to include private key (security risk!)
+        """
+        if not self.storage.key_exists():
+            raise VibeSafeError("No key pair found. Nothing to export.")
+
+        # Generate default filename if not provided
+        if output_file is None:
+            timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+            output_file = f"vibesafe_backup_{timestamp}.tar"
+
+        output_path = Path(output_file)
+
+        # Create temporary directory for export files
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+
+            # Copy secrets file
+            if self.storage.secrets_file.exists():
+                import shutil
+                shutil.copy2(self.storage.secrets_file, temp_path / 'secrets.json')
+
+            # Copy public key
+            if self.storage.pub_key_file.exists():
+                import shutil
+                shutil.copy2(self.storage.pub_key_file, temp_path / 'public.pem')
+
+            # Copy config
+            if self.storage.config_file.exists():
+                import shutil
+                shutil.copy2(self.storage.config_file, temp_path / 'config.json')
+
+            # Optionally include private key (with strong warning)
+            if include_private_key:
+                if self.storage.private_key_file_exists():
+                    click.secho("⚠️  WARNING: Including private key in backup!", fg='red', err=True)
+                    click.secho("   This backup contains sensitive key material.", fg='yellow', err=True)
+                    click.secho("   Store it securely and never share it!", fg='yellow', err=True)
+                    import shutil
+                    shutil.copy2(self.storage.priv_key_file, temp_path / 'private.pem')
+                else:
+                    click.secho("⚠️  Private key is in secure storage (passkey), not included", fg='yellow')
+
+            # Create tar archive
+            with tarfile.open(output_path, 'w') as tar:
+                for file in temp_path.iterdir():
+                    tar.add(file, arcname=file.name)
+
+        # Set restrictive permissions on backup file
+        os.chmod(output_path, 0o600)
+
+        secrets = self.storage.load_secrets()
+        click.secho(f"✅ Backup exported to: {output_path}", fg='green')
+        click.secho(f"   • {len(secrets)} secret(s) backed up", fg='cyan')
+        click.secho(f"   • Public key included", fg='cyan')
+        if include_private_key and self.storage.private_key_file_exists():
+            click.secho(f"   • Private key included (⚠️ SENSITIVE)", fg='yellow')
+
+    def import_backup(self, backup_file: str, force: bool = False):
+        """Import secrets and keys from a backup file.
+
+        Args:
+            backup_file: Path to backup tar file
+            force: Whether to overwrite existing data
+        """
+        backup_path = Path(backup_file)
+        if not backup_path.exists():
+            raise VibeSafeError(f"Backup file not found: {backup_file}")
+
+        # Check if data already exists
+        if self.storage.key_exists() and not force:
+            raise VibeSafeError("Keys already exist. Use --force to overwrite.")
+
+        if self.storage.secrets_file.exists() and not force:
+            existing_secrets = self.storage.load_secrets()
+            if existing_secrets:
+                raise VibeSafeError(f"{len(existing_secrets)} secret(s) already exist. Use --force to overwrite.")
+
+        # Extract backup to temporary directory
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+
+            # Extract tar archive
+            try:
+                with tarfile.open(backup_path, 'r') as tar:
+                    # Validate tar members for security
+                    for member in tar.getmembers():
+                        # Ensure no path traversal
+                        if member.name.startswith('..') or '/' in member.name:
+                            raise VibeSafeError(f"Invalid tar member: {member.name}")
+                    tar.extractall(temp_path)
+            except tarfile.TarError as e:
+                raise VibeSafeError(f"Failed to extract backup: {e}")
+
+            # Import files
+            imported = []
+
+            # Import public key
+            pub_key_backup = temp_path / 'public.pem'
+            if pub_key_backup.exists():
+                import shutil
+                self.storage.base_dir.mkdir(mode=0o700, exist_ok=True)
+                shutil.copy2(pub_key_backup, self.storage.pub_key_file)
+                os.chmod(self.storage.pub_key_file, 0o644)
+                imported.append('public key')
+
+            # Import private key if present
+            priv_key_backup = temp_path / 'private.pem'
+            if priv_key_backup.exists():
+                import shutil
+                shutil.copy2(priv_key_backup, self.storage.priv_key_file)
+                os.chmod(self.storage.priv_key_file, 0o600)
+                imported.append('private key')
+
+            # Import secrets
+            secrets_backup = temp_path / 'secrets.json'
+            if secrets_backup.exists():
+                import shutil
+                shutil.copy2(secrets_backup, self.storage.secrets_file)
+                os.chmod(self.storage.secrets_file, 0o600)
+                secrets = self.storage.load_secrets()
+                imported.append(f'{len(secrets)} secret(s)')
+
+            # Import config
+            config_backup = temp_path / 'config.json'
+            if config_backup.exists():
+                import shutil
+                shutil.copy2(config_backup, self.storage.config_file)
+                os.chmod(self.storage.config_file, 0o600)
+                imported.append('configuration')
+
+        if not imported:
+            raise VibeSafeError("No valid data found in backup file")
+
+        click.secho(f"✅ Backup imported successfully!", fg='green')
+        for item in imported:
+            click.secho(f"   • Imported {item}", fg='cyan')
+
     def disable_passkey(self):
         """Disable passkey protection"""
         if not self.passkey_manager:
@@ -186,6 +483,123 @@ class VibeSafe:
         
         click.echo("✓ Passkey protection disabled. Private key exported to file.")
     
+    # ======== Programmatic API Methods ========
+    # These methods are designed for external tool integration
+    # They return values directly instead of printing to stdout
+
+    def fetch_secret(self, name: str) -> str:
+        """Programmatic API to retrieve a secret value.
+
+        This method returns the plaintext secret directly for use in scripts/tools.
+        It should NEVER be used in contexts where the value might be logged or displayed.
+
+        Note: For best performance with passkey authentication, consider creating
+        a VibeSafe instance with interactive=False for API usage.
+
+        Args:
+            name: The name of the secret to retrieve
+
+        Returns:
+            The plaintext secret value
+
+        Raises:
+            VibeSafeError: If key pair not found or secret doesn't exist
+        """
+        # Temporarily suppress interactive mode for API calls if needed
+        was_interactive = self.interactive
+        if was_interactive:
+            self.interactive = False
+        try:
+            return self.get_secret(name, return_value=True)
+        finally:
+            self.interactive = was_interactive
+
+    def store_secret(self, name: str, value: str, overwrite: bool = False) -> None:
+        """Programmatic API to store a secret.
+
+        Args:
+            name: The name of the secret
+            value: The plaintext secret value
+            overwrite: Whether to overwrite if secret exists
+
+        Raises:
+            VibeSafeError: If key pair not found or secret exists (without overwrite)
+        """
+        # Temporarily suppress interactive mode for API calls
+        was_interactive = self.interactive
+        if was_interactive:
+            self.interactive = False
+        try:
+            # Use the existing add_secret method but with value provided
+            self.add_secret(name, value, overwrite)
+        finally:
+            self.interactive = was_interactive
+
+    def list_secret_names(self) -> list:
+        """Programmatic API to get list of secret names.
+
+        Returns:
+            List of secret names (strings)
+        """
+        secrets = self.storage.load_secrets()
+        return sorted(list(secrets.keys()))
+
+    def secret_exists(self, name: str) -> bool:
+        """Check if a secret exists.
+
+        Args:
+            name: The name of the secret
+
+        Returns:
+            True if secret exists, False otherwise
+        """
+        secrets = self.storage.load_secrets()
+        return name in secrets
+
+    def remove_secret(self, name: str) -> None:
+        """Programmatic API to delete a secret.
+
+        Args:
+            name: The name of the secret to delete
+
+        Raises:
+            VibeSafeError: If secret doesn't exist
+        """
+        secrets = self.storage.load_secrets()
+        if name not in secrets:
+            raise VibeSafeError(f"Secret '{name}' not found.")
+        del secrets[name]
+        self.storage.save_secrets(secrets)
+
+    def get_status_info(self) -> dict:
+        """Get system status information as a dict.
+
+        Returns:
+            Dictionary with status information
+        """
+        status = {
+            'initialized': self.storage.key_exists(),
+            'passkey_enabled': False,
+            'passkey_type': None,
+            'secret_count': 0,
+            'private_key_location': 'file' if self.storage.private_key_file_exists() else 'secure_storage'
+        }
+
+        if self.passkey_manager and self.passkey_manager.is_enabled():
+            status['passkey_enabled'] = True
+            if IS_MACOS:
+                status['passkey_type'] = 'keychain'
+            else:
+                status['passkey_type'] = 'fido2'
+
+        secrets = self.storage.load_secrets()
+        status['secret_count'] = len(secrets)
+
+        return status
+
+    # ======== CLI Methods ========
+    # These methods are designed for CLI use and print to stdout
+
     def show_status(self):
         """Show system status"""
         click.echo("VibeSafe Status")
@@ -216,23 +630,38 @@ class VibeSafe:
         secrets = self.storage.load_secrets()
         click.echo(f"\nSecrets stored: {len(secrets)}")
     
-    def _load_private_key_with_auth(self):
-        """Load private key, handling passkey authentication if enabled"""
+    def _load_private_key_with_auth(self, silent=False):
+        """Load private key, handling passkey authentication if enabled
+
+        Args:
+            silent: If True, suppress authentication prompts (for API usage)
+        """
         if self.passkey_manager and self.passkey_manager.is_enabled():
             # This will trigger biometric/passkey authentication
             try:
-                # Inform user about authentication requirement
-                click.echo("🔐 Touch ID/Face ID required to access secrets", err=True)
-                click.echo("👆 Please authenticate when prompted", err=True)
-                
+                # Only show prompts if interactive and not silent
+                if self.interactive and not silent:
+                    click.echo("🔐 Touch ID/Face ID required to access secrets", err=True)
+                    click.echo("👆 Please authenticate when prompted", err=True)
+
                 return self.passkey_manager.retrieve_private_key()
             except PasskeyError as e:
-                if "cancelled" in str(e).lower():
-                    raise VibeSafeError("❌ Authentication cancelled. Please try again.")
-                elif "timeout" in str(e).lower():
-                    raise VibeSafeError("⏰ Authentication timed out. Please try again.")
-                elif "failed" in str(e).lower():
-                    raise VibeSafeError("❌ Authentication failed. Please check your Touch ID/Face ID settings.")
+                error_msg = str(e).lower()
+                if "cancelled" in error_msg:
+                    if self.interactive:
+                        raise VibeSafeError("❌ Authentication cancelled. Please try again.")
+                    else:
+                        raise VibeSafeError("Authentication cancelled")
+                elif "timeout" in error_msg:
+                    if self.interactive:
+                        raise VibeSafeError("⏰ Authentication timed out. Please try again.")
+                    else:
+                        raise VibeSafeError("Authentication timeout")
+                elif "failed" in error_msg:
+                    if self.interactive:
+                        raise VibeSafeError("❌ Authentication failed. Please check your Touch ID/Face ID settings.")
+                    else:
+                        raise VibeSafeError("Authentication failed")
                 raise VibeSafeError(f"Authentication error: {str(e)}")
         else:
             # Load from file
@@ -379,6 +808,64 @@ def passkey_disable():
     vibesafe = VibeSafe()
     try:
         vibesafe.disable_passkey()
+    except VibeSafeError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@cli.command()
+@click.option('--yes', '-y', is_flag=True, help='Skip confirmation prompt')
+def rotate(yes):
+    """Rotate encryption keys and re-encrypt all secrets"""
+    vibesafe = VibeSafe()
+    try:
+        if not yes:
+            click.secho("⚠️  Key rotation will:", fg='yellow')
+            click.echo("   • Generate new encryption keys")
+            click.echo("   • Re-encrypt all stored secrets")
+            click.echo("   • Backup old keys (just in case)")
+            click.echo("")
+            if not click.confirm("Continue with key rotation?"):
+                click.echo("Key rotation cancelled.")
+                return
+        vibesafe.rotate_keys()
+    except VibeSafeError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@cli.command('export')
+@click.option('--output', '-o', help='Output file path (default: vibesafe_backup_<timestamp>.tar)')
+@click.option('--include-private-key', is_flag=True, help='Include private key (SENSITIVE!)')
+def export_backup(output, include_private_key):
+    """Export secrets and keys for backup"""
+    vibesafe = VibeSafe()
+    try:
+        if include_private_key:
+            click.secho("⚠️  WARNING: You are about to export your private key!", fg='red')
+            click.secho("   This backup will contain highly sensitive data.", fg='yellow')
+            if not click.confirm("Are you sure you want to include the private key?"):
+                click.echo("Export cancelled.")
+                return
+        vibesafe.export_backup(output, include_private_key)
+    except VibeSafeError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@cli.command('import')
+@click.argument('backup_file')
+@click.option('--force', '-f', is_flag=True, help='Overwrite existing data')
+def import_backup(backup_file, force):
+    """Import secrets and keys from backup file"""
+    vibesafe = VibeSafe()
+    try:
+        if force:
+            click.secho("⚠️  WARNING: This will overwrite existing data!", fg='yellow')
+            if not click.confirm("Continue with import?"):
+                click.echo("Import cancelled.")
+                return
+        vibesafe.import_backup(backup_file, force)
     except VibeSafeError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)

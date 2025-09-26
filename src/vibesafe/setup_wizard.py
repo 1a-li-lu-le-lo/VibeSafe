@@ -75,10 +75,10 @@ class SetupWizard:
             from .vibesafe import VibeSafe
             vibesafe = VibeSafe()
             vibesafe.init_keys()
-            click.echo("✅ Encryption keys generated successfully!")
+            click.secho("✅ Encryption keys generated successfully!", fg='green')
             return True
         except Exception as e:
-            click.echo(f"❌ Failed to initialize VibeSafe: {e}")
+            click.secho(f"❌ Failed to initialize VibeSafe: {e}", fg='red', err=True)
             return False
     
     def _step_add_first_secret(self):
@@ -103,19 +103,19 @@ class SetupWizard:
             from .vibesafe import VibeSafe
             vibesafe = VibeSafe()
             vibesafe.add_secret(demo_key, demo_value)
-            click.echo(f"✅ Demo secret '{demo_key}' added successfully!")
+            click.secho(f"✅ Demo secret '{demo_key}' added successfully!", fg='green')
             
-            # Test retrieval
-            retrieved = vibesafe.get_secret(demo_key)
+            # Test retrieval with return_value parameter
+            retrieved = vibesafe.get_secret(demo_key, return_value=True)
             if retrieved == demo_value:
-                click.echo("✅ Secret retrieval test passed!")
+                click.secho("✅ Secret retrieval test passed!", fg='green')
                 return True
             else:
-                click.echo("❌ Secret retrieval test failed!")
+                click.secho("❌ Secret retrieval test failed!", fg='red')
                 return False
                 
         except Exception as e:
-            click.echo(f"❌ Failed to add demo secret: {e}")
+            click.secho(f"❌ Failed to add demo secret: {e}", fg='red', err=True)
             return False
     
     def _step_setup_passkey(self):
@@ -133,7 +133,7 @@ class SetupWizard:
             click.echo("   Your secrets are still securely encrypted at rest.")
             return True
         
-        click.echo("🎉 Touch ID/Face ID is available on your Mac!")
+        click.secho("🎉 Touch ID/Face ID is available on your Mac!", fg='cyan')
         click.echo("\n💡 Choose your passkey protection method:")
         click.echo("   1. 🔐 VibeSafe Keychain (Touch ID/Face ID)")
         click.echo("      • Private key stored in macOS Keychain")
@@ -143,18 +143,44 @@ class SetupWizard:
         click.echo("      • True Apple Passkey following FIDO2 standards")
         click.echo("      • Syncs across all Apple devices")
         click.echo("      • Industry-standard implementation")
-        
-        # Ask user if they want to enable passkey
-        if click.confirm("\n🔒 Would you like to enable passkey protection?", default=True):
+
+        # Check if FIDO2 is available
+        try:
+            from .fido2_passkey import Fido2PasskeyManager
+            has_fido2 = True
+        except ImportError:
+            has_fido2 = False
+
+        # Ask user which method they prefer
+        choice = click.prompt("\n🔒 Choose passkey method (1/2) or press Enter to skip", default='', type=str)
+
+        if choice == '1':
+            # Use Keychain (default macOS implementation)
             try:
                 from .vibesafe import VibeSafe
-                vibesafe = VibeSafe()
-                vibesafe.enable_passkey()
-                click.echo("✅ Passkey protection enabled!")
-                click.echo("   You'll be prompted for authentication when accessing secrets.")
+                vibesafe = VibeSafe(passkey_type='keychain')
+                vibesafe.enable_passkey(passkey_type='keychain')
+                click.secho("✅ Keychain passkey protection enabled!", fg='green')
+                click.secho("   You'll be prompted for Touch ID/Face ID when accessing secrets.", fg='cyan')
                 return True
             except Exception as e:
-                click.echo(f"⚠️  Failed to enable passkey protection: {e}")
+                click.secho(f"⚠️  Failed to enable Keychain passkey: {e}", fg='yellow')
+                click.echo("   Don't worry - your secrets are still securely encrypted.")
+                return True
+        elif choice == '2':
+            if not has_fido2:
+                click.secho("⚠️  FIDO2 support not installed.", fg='yellow')
+                click.echo("   Install with: pip install 'vibesafe[fido2]'")
+                return True
+            try:
+                from .vibesafe import VibeSafe
+                vibesafe = VibeSafe(passkey_type='fido2')
+                vibesafe.enable_passkey(passkey_type='fido2')
+                click.secho("✅ FIDO2 passkey protection enabled!", fg='green')
+                click.secho("   Your private key is now secured with Apple Passkey.", fg='cyan')
+                return True
+            except Exception as e:
+                click.secho(f"⚠️  Failed to enable FIDO2 passkey: {e}", fg='yellow')
                 click.echo("   Don't worry - your secrets are still securely encrypted.")
                 return True
         else:
